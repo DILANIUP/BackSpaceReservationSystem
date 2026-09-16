@@ -69,4 +69,7 @@ public class CareerService
 
         return Result.Success();
     }
+
+    public async Task<List<CareerEntity>> GetAllAsync(CancellationToken ct = default)
+    => await _careerRepository.GetAllAsync(ct);
 }

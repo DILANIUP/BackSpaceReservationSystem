@@ -16,6 +16,14 @@ public class CareerController : ControllerBase
         _careerService = careerService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var careers = await _careerService.GetAllAsync(ct);
+        var response = careers.Select(c => new CareerResponse(c.Id, c.Name, c.FacultyId));
+        return Ok(response);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(
         Guid id,
@@ -43,7 +51,8 @@ public class CareerController : ControllerBase
         var result = await _careerService.CreateAsync(
             request.Name,
             request.FacultyId,
-            ct);
+            ct
+        );
 
         if (result.IsFailure)
             return BadRequest(result.Error);
@@ -51,12 +60,14 @@ public class CareerController : ControllerBase
         var response = new CareerResponse(
             result.Value.Id,
             result.Value.Name,
-            result.Value.FacultyId);
+            result.Value.FacultyId
+        );
 
         return CreatedAtAction(
             nameof(GetById),
             new { id = result.Value.Id },
-            response);
+            response
+        );
     }
 
     [HttpPut("{id:guid}")]
