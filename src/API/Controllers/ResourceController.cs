@@ -16,6 +16,18 @@ public class ResourceController : ControllerBase
         _resourceService = resourceService;
     }
 
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var resources = await _resourceService.ListActiveAsync(ct);
+        var response = resources.Select(r => new ResourceResponse(
+            r.Id, r.Name, r.Description, r.AvailableQuantity, r.Status
+        ));
+        return Ok(response);
+    }
+
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(
         Guid id,

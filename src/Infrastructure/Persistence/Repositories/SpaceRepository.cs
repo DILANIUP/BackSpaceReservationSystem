@@ -14,6 +14,9 @@ public class SpaceRepository : ISpaceRepository
     public async Task<Space?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await _context.Spaces.FirstOrDefaultAsync(s => s.Id == id, ct);
 
+    public async Task<IEnumerable<Space>> GetAllActiveAsync(CancellationToken ct = default)
+        => await _context.Spaces.Where(s => s.IsActive).ToListAsync(ct);
+
     public void Add(Space space) => _context.Spaces.Add(space);
 
     public void Update(Space space) => _context.Spaces.Update(space);

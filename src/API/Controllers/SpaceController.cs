@@ -16,6 +16,17 @@ public class SpaceController : ControllerBase
         _spaceService = spaceService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var space = await _spaceService.ListActiveAsync(ct);
+        var response = space.Select(s => new SpaceResponse(
+            s.Id, s.Name, s.Type, s.Capacity, s.Location, s.IsActive
+        ));
+
+        return Ok(response);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(
         Guid id,

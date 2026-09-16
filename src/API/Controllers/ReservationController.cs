@@ -22,6 +22,13 @@ public class ReservationController(ReservationService reservationService) : Cont
             : BadRequest(new { result.Error.Code, result.Error.Description });
     }
 
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine (CancellationToken ct)
+    {
+        var reservations = await reservationService.GetMineAsync(GetUserId(), ct);
+        return Ok(reservations);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {

@@ -89,6 +89,15 @@ public class ReservationService(
         );
     }
 
+    public async Task<IEnumerable<ReservationResponse>> GetMineAsync(Guid userId, CancellationToken ct)
+    {
+        var reservations = await reservationRepository.GetByUserIdAsync(userId, ct);
+        return reservations.Select(r => new ReservationResponse(
+            r.Id, r.Slot.Date, r.Slot.StartTime, r.Slot.EndTime,
+            r.Reason, r.CurrentStatus.ToString(), r.UserId, r.SpaceId
+        ));
+    }
+
     public async Task<Result<ReservationResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var reservation = await reservationRepository.GetByIdWithDetailsAsync(id, ct);

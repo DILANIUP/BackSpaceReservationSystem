@@ -36,5 +36,11 @@ public class ReservationRepository : IReservationRepository
                 && r.CurrentStatus != ReservationStatus.Cancelled)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<Reservation>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
+        => await _context.Reservations
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.Slot.Date)
+            .ToListAsync(ct);
+
     public void AddHistory(ReservationHistory history) => _context.ReservationHistories.Add(history);
 }
