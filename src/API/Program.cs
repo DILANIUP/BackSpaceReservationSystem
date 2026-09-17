@@ -52,6 +52,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
+app.UseCors("AngularClient");
 app.UseAuthentication(); // Habilita la autenticación
 app.UseAuthorization(); // Habilita la autorización
 app.MapControllers();

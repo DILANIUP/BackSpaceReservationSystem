@@ -30,9 +30,27 @@ public static class DependencyInjection
         services.AddAuth(configuration);
         services.AddValidation();
         services.AddEmail(configuration);
+        services.AddCorsPolicy(configuration);
         services.AddScoped<AuthService>();
         services.AddScoped<ReservationService>();
         return services;
+    }
+
+    private static void AddCorsPolicy(this IServiceCollection services, IConfiguration configuration)
+    {
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AngularClient", policy =>
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+                // Sin AllowCredentials(): el token va en el header Authorization,
+                // no en cookies, así que no se necesitan credenciales de CORS.
+            });
+        });
     }
 
     private static void AddEmail(this IServiceCollection services, IConfiguration configuration)
