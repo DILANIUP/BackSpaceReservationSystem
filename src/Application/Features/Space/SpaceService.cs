@@ -33,9 +33,9 @@ public class SpaceService
         return space;
     }
 
-    public async Task<IEnumerable<SpaceEntity>> ListActiveAsync(
+    public async Task<IEnumerable<SpaceEntity>> ListAsync(
         CancellationToken ct = default
-    ) => await _spaceRepository.GetAllActiveAsync(ct);
+    ) => await _spaceRepository.GetAllAsync(ct);
 
     // Creacion de un espacio
     public async Task<Result<SpaceEntity>> CreateAsync(
