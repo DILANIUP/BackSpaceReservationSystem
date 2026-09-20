@@ -96,7 +96,12 @@ public static class DependencyInjection
 
     private static void AddAuth(this IServiceCollection services, IConfiguration configuration)
     {
+        // Esto es para Auditoria - guardado de datos en fecha
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+
         var jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
