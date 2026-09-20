@@ -30,9 +30,9 @@ public class ResourceService
         return resource;
     }
 
-    public async Task<IEnumerable<ResourceEntity>> ListActiveAsync(
+    public async Task<IEnumerable<ResourceEntity>> ListAsync(
         CancellationToken ct = default
-    ) => await _resourceRepository.GetAllActiveAsync(ct);
+    ) => await _resourceRepository.GetAllAsync(ct);
 
     public async Task<Result<ResourceEntity>> CreateAsync(
         string name,

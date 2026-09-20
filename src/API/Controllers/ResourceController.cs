@@ -20,7 +20,7 @@ public class ResourceController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
-        var resources = await _resourceService.ListActiveAsync(ct);
+        var resources = await _resourceService.ListAsync(ct);
         var response = resources.Select(r => new ResourceResponse(
             r.Id, r.Name, r.Description, r.AvailableQuantity, r.Status
         ));
