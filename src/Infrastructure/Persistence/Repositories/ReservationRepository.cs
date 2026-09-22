@@ -42,5 +42,15 @@ public class ReservationRepository : IReservationRepository
             .OrderByDescending(r => r.Slot.Date)
             .ToListAsync(ct);
 
+
+    public async Task<IEnumerable<Reservation>> GetByCarrerAsync(Guid carrerId, CancellationToken ct = default)
+        => await _context.Reservations
+            .Include(r => r.User)
+                .ThenInclude(u => u.Role)
+            .Include(r => r.Space)
+            .Where(r => r.User.CareerId == carrerId && r.CurrentStatus != ReservationStatus.Draft)
+            .OrderByDescending(r => r.Slot.Date)
+            .ToListAsync(ct);
+            
     public void AddHistory(ReservationHistory history) => _context.ReservationHistories.Add(history);
 }

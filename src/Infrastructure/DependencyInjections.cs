@@ -10,6 +10,7 @@ using SpaceReservationSystem.Application.Features.Faculty;
 using SpaceReservationSystem.Application.Features.Reservations;
 using SpaceReservationSystem.Application.Features.Resource;
 using SpaceReservationSystem.Application.Features.Space;
+using SpaceReservationSystem.Application.Features.Users;
 using SpaceReservationSystem.Application.Features.Vouchers;
 using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Infrastructure.Authentication;
@@ -91,6 +92,7 @@ public static class DependencyInjection
         services.AddScoped<AlertService>();
         services.AddScoped<EmailTemplateService>();
         services.AddScoped<Application.Features.Email.EmailService>();
+        services.AddScoped<UserService>();
     }
 
 

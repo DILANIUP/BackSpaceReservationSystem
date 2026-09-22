@@ -23,7 +23,7 @@ public class ReservationController(ReservationService reservationService) : Cont
     }
 
     [HttpGet("mine")]
-    public async Task<IActionResult> GetMine (CancellationToken ct)
+    public async Task<IActionResult> GetMine(CancellationToken ct)
     {
         var reservations = await reservationService.GetMineAsync(GetUserId(), ct);
         return Ok(reservations);
@@ -36,6 +36,16 @@ public class ReservationController(ReservationService reservationService) : Cont
         return result.IsSuccess
             ? Ok(result.Value)
             : NotFound(new { result.Error.Code, result.Error.Description });
+    }
+
+    [HttpGet("career")]
+    [Authorize(Roles = "Coordinator, Admin")]
+    public async Task<IActionResult> GetByCareer(CancellationToken ct)
+    {
+        var result = await reservationService.GetByCareerAsync(GetUserId(), GetUserRole(), ct);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(new { result.Error.Code, result.Error.Description });
     }
 
     [HttpPost("{id:guid}/submit")]

@@ -12,6 +12,7 @@ public class ReservationService(
     IReservationRepository reservationRepository,
     ISpaceRepository spaceRepository,
     IResourceRepository resourceRepository,
+    IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IValidator<CreateReservationRequest> validator,
     VoucherService voucherService
@@ -98,6 +99,25 @@ public class ReservationService(
         ));
     }
 
+    public async Task<Result<IEnumerable<ReservationResponse>>> GetByCareerAsync(Guid coordinatorUserId, RoleCode roleCode, CancellationToken ct)
+    {
+        var coordinator = await userRepository.GetByIdAsync(coordinatorUserId, ct);
+        if(coordinator is null)
+            return Result.Failure<IEnumerable<ReservationResponse>>(Error.NotFound("User", coordinatorUserId.ToString()));
+
+        if (coordinator.CareerId is null)
+            return Result.Failure<IEnumerable<ReservationResponse>>(
+                Error.Conflict("User", "El coordinador no tiene una carrera asignada."));
+
+        var reservations = await reservationRepository.GetByCarrerAsync(coordinator.CareerId.Value, ct);
+
+        return Result.Success(reservations.Select(r => new ReservationResponse(
+            r.Id, r.Slot.Date, r.Slot.StartTime, r.Slot.EndTime,
+            r.Reason, r.CurrentStatus.ToString(), r.UserId, r.SpaceId,
+            r.User?.Name, r.User?.Role?.Name, r.Space?.Name
+        )));
+    }
+    
     public async Task<Result<ReservationResponse>> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var reservation = await reservationRepository.GetByIdWithDetailsAsync(id, ct);

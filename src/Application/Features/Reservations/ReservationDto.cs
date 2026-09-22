@@ -1,4 +1,3 @@
-
 namespace SpaceReservationSystem.Application.Features.Reservations;
 
 public sealed record CreateReservationRequest(
@@ -18,7 +17,10 @@ public sealed record ReservationResponse(
     string Reason,
     string CurrentStatus,
     Guid UserId,
-    Guid? SpaceId
+    Guid? SpaceId,
+    string? RequesterName = null,
+    string? RequesterRole = null,
+    string? SpaceName = null
 );
 
 public sealed record TransitionRequest(

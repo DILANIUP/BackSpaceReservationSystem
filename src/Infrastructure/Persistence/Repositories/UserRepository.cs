@@ -13,7 +13,9 @@ public class UserRepository : IUserRepository
     public UserRepository(AppDbContext context) => _context = context;
 
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default) // Busca el usuarioy si no existe devuelve null
-        => await _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        => await _context.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
 
     public async Task<User?> GetByEmailAsync(Email email, CancellationToken ct = default)  
         => await _context.Users

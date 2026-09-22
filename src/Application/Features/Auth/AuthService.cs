@@ -1,9 +1,8 @@
-using SpaceReservationSystem.Domain.Entities;
+
 using SpaceReservationSystem.Domain.Enums;
 using SpaceReservationSystem.Domain.Errors;
 using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Domain.Primitives;
-using SpaceReservationSystem.Domain.ValueObjects;
 using SpaceReservationSystem.Infrastructure.Authentication;
 using EmailValueObject = SpaceReservationSystem.Domain.ValueObjects.Email;
 
@@ -39,7 +38,7 @@ public class AuthService(
 
         var passwordHash = passwordHasher.Hash(request.Password);
 
-        var userResult = User.Create(request.Name, emailResult.Value, passwordHash, request.Phone, role.Id);
+        var userResult = Domain.Entities.User.Create(request.Name, emailResult.Value, passwordHash, request.Phone, role.Id, request.CareerId);
         if(userResult.IsFailure)
             return Result.Failure<RegisterResponse>(userResult.Error);
 

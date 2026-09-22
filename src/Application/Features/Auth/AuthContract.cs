@@ -7,7 +7,8 @@ public sealed record RegisterRequest(
     string Email,
     string Password,
     string Phone,
-    RoleCode RequestedRole = RoleCode.Student
+    RoleCode RequestedRole = RoleCode.Student,
+    Guid? CareerId = null
 );
 
 public sealed record RegisterResponse(
