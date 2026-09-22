@@ -14,6 +14,9 @@ public class AlertRepository : IAlertRepository
     public async Task<Alert?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await _context.Alerts.FirstOrDefaultAsync(a => a.Id == id, ct);
 
+    public async Task<List<Alert>> GetAllAsync(CancellationToken ct = default)
+    => await _context.Alerts.ToListAsync(ct);
+
     public void Add(Alert alert) => _context.Alerts.Add(alert);
 
     public void Update(Alert alert) => _context.Alerts.Update(alert);

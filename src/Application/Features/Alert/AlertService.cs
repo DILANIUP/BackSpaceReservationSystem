@@ -60,4 +60,7 @@ public class AlertService
 
         return Result.Success();
     }
+
+    public async Task<List<AlertEntity>> GetAllAsync(CancellationToken ct = default)
+    => await _alertRepository.GetAllAsync(ct);
 }

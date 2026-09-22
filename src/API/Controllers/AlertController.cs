@@ -30,7 +30,24 @@ public class AlertController : ControllerBase
         return Ok(response);
     }
 
-    // reportar una nueva incidencia (daño, mantenimiento, etc.)
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var alerts = await _alertService.GetAllAsync(ct);
+
+        var response = alerts.Select(a => new AlertResponse(
+            a.Id,
+            a.Type,
+            a.Description,
+            a.ResolvedAt,
+            a.IsResolved,
+            a.ResourceId,
+            a.SpaceId));
+
+        return Ok(response);
+    }
+
+    // reportar una nueva incidencia (daño, mantenimiento)
     [HttpPost]
     [Authorize(Roles = "Student,Teacher,Bienes,Admin")]
     public async Task<IActionResult> Create(CreateAlertRequest request, CancellationToken ct)
