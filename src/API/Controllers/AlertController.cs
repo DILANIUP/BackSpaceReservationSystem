@@ -23,9 +23,14 @@ public class AlertController : ControllerBase
             return NotFound(result.Error);
 
         var response = new AlertResponse(
-            result.Value.Id, result.Value.Type, result.Value.Description,
-            result.Value.ResolvedAt, result.Value.IsResolved,
-            result.Value.ResourceId, result.Value.SpaceId);
+            result.Value.Id,
+            result.Value.Type,
+            result.Value.Description,
+            result.Value.ResolvedAt,
+            result.Value.IsResolved,
+            result.Value.ResolutionObservation,
+            result.Value.ResourceId,
+            result.Value.SpaceId);
 
         return Ok(response);
     }
@@ -41,6 +46,7 @@ public class AlertController : ControllerBase
             a.Description,
             a.ResolvedAt,
             a.IsResolved,
+            a.ResolutionObservation,
             a.ResourceId,
             a.SpaceId));
 
@@ -59,9 +65,14 @@ public class AlertController : ControllerBase
             return BadRequest(result.Error);
 
         var response = new AlertResponse(
-            result.Value.Id, result.Value.Type, result.Value.Description,
-            result.Value.ResolvedAt, result.Value.IsResolved,
-            result.Value.ResourceId, result.Value.SpaceId);
+            result.Value.Id,
+            result.Value.Type,
+            result.Value.Description,
+            result.Value.ResolvedAt,
+            result.Value.IsResolved,
+            result.Value.ResolutionObservation,
+            result.Value.ResourceId,
+            result.Value.SpaceId);
 
         return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, response);
     }
@@ -69,9 +80,9 @@ public class AlertController : ControllerBase
     // marcar la incidencia como resuelta
     [HttpPatch("{id:guid}/resolve")]
     [Authorize(Roles = "Bienes,Admin")]
-    public async Task<IActionResult> Resolve(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Resolve(Guid id, ResolveAlertRequest request, CancellationToken ct)
     {
-        var result = await _alertService.ResolveAsync(id, ct);
+        var result = await _alertService.ResolveAsync(id, request.Observation, ct);
 
         if (result.IsFailure)
             return BadRequest(result.Error);

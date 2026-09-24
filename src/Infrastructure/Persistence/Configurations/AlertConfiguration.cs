@@ -9,7 +9,13 @@ public class AlertConfiguration : IEntityTypeConfiguration<Alert>
     public void Configure(EntityTypeBuilder<Alert> builder)
     {
         builder.Property(a => a.Type).IsRequired();
-        builder.Property(a => a.Description).IsRequired().HasMaxLength(500);
+
+        builder.Property(a => a.Description)
+            .IsRequired()
+            .HasMaxLength(500);
+
+        builder.Property(a => a.ResolutionObservation)
+            .HasMaxLength(1000);
 
         builder.HasOne(a => a.Resource)
             .WithMany(r => r.Alerts)

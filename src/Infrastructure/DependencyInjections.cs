@@ -7,6 +7,7 @@ using SpaceReservationSystem.Application.Features.Auth;
 using SpaceReservationSystem.Application.Features.Career;
 using SpaceReservationSystem.Application.Features.EmailTemplate;
 using SpaceReservationSystem.Application.Features.Faculty;
+using SpaceReservationSystem.Application.Features.Notification;
 using SpaceReservationSystem.Application.Features.Reservations;
 using SpaceReservationSystem.Application.Features.Resource;
 using SpaceReservationSystem.Application.Features.Space;
@@ -81,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IReservationRepository, ReservationRepository>();
         services.AddScoped<IVoucherRepository, VoucherRepository>();
         services.AddScoped<IAlertRepository, AlertRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IEmailTemplateRepository, EmailTemplateRepository>();
         services.AddScoped<IEmailLogRepository, EmailLogRepository>();
         services.AddScoped<ReservationService>();
@@ -90,6 +92,7 @@ public static class DependencyInjection
         services.AddScoped<ResourceService>();
         services.AddScoped<VoucherService>();
         services.AddScoped<AlertService>();
+        services.AddScoped<NotificationService>();
         services.AddScoped<EmailTemplateService>();
         services.AddScoped<Application.Features.Email.EmailService>();
         services.AddScoped<UserService>();

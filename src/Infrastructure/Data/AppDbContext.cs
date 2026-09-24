@@ -25,6 +25,8 @@ public class AppDbContext : DbContext
     public DbSet<ReservationHistory> ReservationHistories => Set<ReservationHistory>();
     public DbSet<Voucher> Vouchers => Set<Voucher>();
     public DbSet<Alert> Alerts => Set<Alert>();
+    // Para notificar alerta por usuario
+    public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
 

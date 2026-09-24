@@ -1,18 +1,22 @@
-using AlertEntity = SpaceReservationSystem.Domain.Entities.Alert;
+using SpaceReservationSystem.Domain.Entities;
 using SpaceReservationSystem.Domain.Enums;
 using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Domain.Primitives;
+using AlertEntity = SpaceReservationSystem.Domain.Entities.Alert;
+using NotificationEntity = SpaceReservationSystem.Domain.Entities.Notification;
 
 namespace SpaceReservationSystem.Application.Features.Alert;
 
 public class AlertService
 {
     private readonly IAlertRepository _alertRepository;
+    private readonly INotificationRepository _notificationRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public AlertService(IAlertRepository alertRepository, IUnitOfWork unitOfWork)
+    public AlertService(IAlertRepository alertRepository, INotificationRepository notificationRepository, IUnitOfWork unitOfWork)
     {
         _alertRepository = alertRepository;
+        _notificationRepository = notificationRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -43,19 +47,33 @@ public class AlertService
     }
 
     // Marca una alerta como resuelta 
-    public async Task<Result> ResolveAsync(Guid id, CancellationToken ct = default)
+    public async Task<Result> ResolveAsync(
+        Guid id,
+        string observation,
+        CancellationToken ct = default)
     {
         var alert = await _alertRepository.GetByIdAsync(id, ct);
 
         if (alert is null)
             return Result.Failure(Error.NotFound("Alert", id.ToString()));
 
-        var result = alert.Resolve(); 
+        var result = alert.Resolve(observation);
 
         if (result.IsFailure)
             return result;
 
         _alertRepository.Update(alert);
+
+        // Crear notificación para el usuario que reportó la alerta
+        if (alert.CreatedBy.HasValue)
+        {
+            var notification = NotificationEntity.Create(
+                alert.CreatedBy.Value,
+                $"Tu reporte fue atendido. {alert.ResolutionObservation}");
+
+            _notificationRepository.Add(notification);
+        }
+
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success();
