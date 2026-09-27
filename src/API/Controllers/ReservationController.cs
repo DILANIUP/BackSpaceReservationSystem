@@ -16,7 +16,7 @@ public class ReservationController(ReservationService reservationService) : Cont
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateReservationRequest request, CancellationToken ct)
     {
-        var result = await reservationService.CreateAsync(request, GetUserId(), ct);
+        var result = await reservationService.CreateAsync(request, GetUserId(), GetUserRole(), ct);
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value)
             : BadRequest(new { result.Error.Code, result.Error.Description });
@@ -43,6 +43,18 @@ public class ReservationController(ReservationService reservationService) : Cont
     public async Task<IActionResult> GetByCareer(CancellationToken ct)
     {
         var result = await reservationService.GetByCareerAsync(GetUserId(), GetUserRole(), ct);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(new { result.Error.Code, result.Error.Description });
+    }
+
+
+
+    [HttpGet("vicerrector")]
+    [Authorize(Roles = "Vicerrector, Admin")]
+    public async Task<IActionResult> GetForVicerrector(CancellationToken ct)
+    {
+        var result = await reservationService.GetForVicerrectorAsync(ct);
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(new { result.Error.Code, result.Error.Description });
@@ -81,6 +93,15 @@ public class ReservationController(ReservationService reservationService) : Cont
     private async Task<IActionResult> Handle(Task<Result<ReservationResponse>> operation)
     {
         var result = await operation;
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(new { result.Error.Code, result.Error.Description });
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Edit(Guid id, [FromBody] EditReservationRequest request, CancellationToken ct)
+    {
+        var result = await reservationService.EditAsync(id, request, GetUserId(), ct);
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(new { result.Error.Code, result.Error.Description });

@@ -102,12 +102,15 @@ public class Reservation : AuditableEntity
         return Result.Success();
     }
 
-    public Result Reject()
+    public Result Reject(RoleCode actingRole)
     {
         if (CurrentStatus is ReservationStatus.Approved or ReservationStatus.Rejected)
             return Result.Failure(ReservationErrors.InvalidStatusTransition);
 
-        CurrentStatus = ReservationStatus.Rejected;
+        CurrentStatus = actingRole == RoleCode.Coordinator
+            ? ReservationStatus.Draft
+            : ReservationStatus.Rejected;
+
         return Result.Success();
     }
 
@@ -137,6 +140,27 @@ public class Reservation : AuditableEntity
 
         Slot = slotResult.Value;
         Reason = reason.Trim();
+        return Result.Success();
+    }
+
+    public Result Edit(DateTime date, TimeSpan startTime, TimeSpan endTime, string reason, Guid? spaceId)
+    {
+        if (CurrentStatus != ReservationStatus.Draft)
+            return Result.Failure(ReservationErrors.InvalidStatusTransition);
+
+        if (string.IsNullOrWhiteSpace(reason))
+            return Result.Failure(ReservationErrors.InvalidReason);
+
+        var slotResult = ReservationSlot.Create(date, startTime, endTime);
+        if (slotResult.IsFailure)
+            return Result.Failure(slotResult.Error);
+
+        if (date < DateTime.UtcNow.AddHours(MinNoticeHours))
+            return Result.Failure(ReservationErrors.InsufficientNotice);
+
+        Slot = slotResult.Value;
+        Reason = reason.Trim();
+        SpaceId = spaceId;
         return Result.Success();
     }
 }

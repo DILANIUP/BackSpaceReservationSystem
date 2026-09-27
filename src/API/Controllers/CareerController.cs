@@ -17,6 +17,7 @@ public class CareerController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var careers = await _careerService.GetAllAsync(ct);

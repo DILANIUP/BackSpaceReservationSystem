@@ -18,6 +18,7 @@ public class FacultyController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var faculties = await _facultyService.GetAllAsync(ct);
