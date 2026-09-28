@@ -11,6 +11,7 @@ public class Alert : AuditableEntity
     //public DateTime CreatedAt { get; private set; } Se elimina, ya que esta es heredada automaticamente, estaba duplicada
     public DateTime? ResolvedAt { get; private set; }
     public bool IsResolved { get; private set; }
+    public string? ResolutionObservation { get; private set; }
 
     public Guid? ResourceId { get; private set; }
     public Resource? Resource { get; private set; }
@@ -47,13 +48,18 @@ public class Alert : AuditableEntity
         return new Alert(Guid.NewGuid(), type, description.Trim(), resourceId, spaceId);
     }
 
-    public Result Resolve()
+    public Result Resolve(string observation)
     {
         if (IsResolved)
             return Result.Failure(AlertErrors.AlreadyResolved);
 
+        if (string.IsNullOrWhiteSpace(observation))
+            return Result.Failure(AlertErrors.InvalidObservation);
+
         IsResolved = true;
         ResolvedAt = DateTime.UtcNow;
+        ResolutionObservation = observation.Trim();
+
         return Result.Success();
     }
 }

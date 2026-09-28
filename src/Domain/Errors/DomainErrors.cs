@@ -82,6 +82,7 @@ public static class AlertErrors
     public static readonly Error InvalidDescription = new("Alert.InvalidDescription", "The description is required.");
     public static readonly Error MissingTarget = new("Alert.MissingTarget", "An alert must be linked to either a resource or a space.");
     public static readonly Error AlreadyResolved = new("Alert.AlreadyResolved", "The alert is already resolved.");
+    public static readonly Error InvalidObservation = new("Alert.InvalidObservation", "The resolution observation is required.");
 }
 
 public static class EmailTemplateErrors

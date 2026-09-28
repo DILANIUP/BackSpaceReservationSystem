@@ -17,6 +17,11 @@ public record AlertResponse(
     string Description,
     DateTime? ResolvedAt,  // null mientras no se resuelva
     bool IsResolved,
+    string? ResolutionObservation,
     Guid? ResourceId,
     Guid? SpaceId
+);
+
+public record ResolveAlertRequest(
+    string Observation
 );
