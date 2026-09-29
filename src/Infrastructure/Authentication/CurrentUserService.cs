@@ -17,4 +17,12 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
                 : null;
         }
     }
+
+    public string? Role
+    {
+        get
+        {
+            return httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Role);
+        }
+    }
 }

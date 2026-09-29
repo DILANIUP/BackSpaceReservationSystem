@@ -55,7 +55,7 @@ public class AlertController : ControllerBase
 
     // reportar una nueva incidencia (daño, mantenimiento)
     [HttpPost]
-    [Authorize(Roles = "Student,Teacher,Bienes,Admin")]
+    [Authorize(Roles = "Student,Teacher,Coordinator,Vicerrector,Bienes,Admin")]
     public async Task<IActionResult> Create(CreateAlertRequest request, CancellationToken ct)
     {
         var result = await _alertService.CreateAsync(

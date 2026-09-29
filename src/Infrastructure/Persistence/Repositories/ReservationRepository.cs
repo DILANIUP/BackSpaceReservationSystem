@@ -37,6 +37,27 @@ public class ReservationRepository : IReservationRepository
                 && r.CurrentStatus != ReservationStatus.Cancelled)
             .ToListAsync(ct);
 
+    // Busca reservas de un recurso para una fecha
+    public async Task<IEnumerable<Reservation>> GetActiveByResourceAndDateAsync(Guid resourceId, DateTime date, CancellationToken ct = default)
+        => await _context.Reservations
+            .Where(r => r.ReservationResources.Any(rr => rr.ResourceId == resourceId)
+                && r.Slot.Date == date.Date
+                && r.CurrentStatus != ReservationStatus.Rejected
+                && r.CurrentStatus != ReservationStatus.Cancelled
+                && r.CurrentStatus != ReservationStatus.Draft)
+            .ToListAsync(ct);
+
+    // Busca reservas próximas de un recurso
+    public async Task<IEnumerable<Reservation>> GetUpcomingByResourceAsync(Guid resourceId, DateTime fromDate, CancellationToken ct = default)
+        => await _context.Reservations
+            .Where(r => r.ReservationResources.Any(rr => rr.ResourceId == resourceId)
+                && r.Slot.Date >= fromDate.Date
+                && r.CurrentStatus != ReservationStatus.Rejected
+                && r.CurrentStatus != ReservationStatus.Cancelled
+                && r.CurrentStatus != ReservationStatus.Draft)
+            .OrderBy(r => r.Slot.Date)
+            .ToListAsync(ct);
+
     public async Task<IEnumerable<Reservation>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _context.Reservations
         .Include(r => r.User)

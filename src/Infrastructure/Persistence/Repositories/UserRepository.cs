@@ -46,7 +46,13 @@ public class UserRepository : IUserRepository
 
         return await query.OrderBy(u => u.Name).ToListAsync(ct);
     }
-
+    public async Task<List<User>> GetByRoleAsync(RoleCode role, CancellationToken ct = default)
+    {
+        return await _context.Users
+            .Include(u => u.Role)
+            .Where(u => u.Role!.Code == role)
+            .ToListAsync(ct);
+    }
     public void Add(User user) => _context.Users.Add(user); // Marca el usuario como nuevo , pendiente de guardar en memoria
 
     public void Update(User user) => _context.Users.Update(user);
