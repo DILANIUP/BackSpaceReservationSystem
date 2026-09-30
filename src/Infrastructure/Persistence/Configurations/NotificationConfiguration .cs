@@ -23,5 +23,11 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
             .WithMany()
             .HasForeignKey(n => n.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Relación Notification → Alert
+        builder.HasOne(n => n.Alert)
+            .WithMany()
+            .HasForeignKey(n => n.AlertId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

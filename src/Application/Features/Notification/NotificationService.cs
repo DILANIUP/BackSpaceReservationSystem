@@ -19,4 +19,23 @@ public class NotificationService
     {
         return await _notificationRepository.GetByUserIdAsync(userId, ct);
     }
+
+    public async Task<bool> MarkAsReadAsync(
+        Guid notificationId,
+        Guid userId,
+        CancellationToken ct = default)
+    {
+        var notification = await _notificationRepository.GetByIdAsync(
+            notificationId,
+            ct);
+
+        if (notification is null || notification.UserId != userId)
+            return false;
+
+        notification.MarkAsRead();
+
+        _notificationRepository.Update(notification);
+
+        return true;
+    }
 }

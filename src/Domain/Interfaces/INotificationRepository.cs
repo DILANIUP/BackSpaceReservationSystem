@@ -8,6 +8,10 @@ public interface INotificationRepository
         Guid userId,
         CancellationToken ct = default);
 
+    Task<Notification?> GetByIdAsync(
+        Guid notificationId,
+        CancellationToken ct = default);
+
     void Add(Notification notification);
 
     void Update(Notification notification);

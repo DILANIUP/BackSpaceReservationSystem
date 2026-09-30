@@ -20,6 +20,12 @@ public class NotificationRepository : INotificationRepository
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync(ct);
 
+    public async Task<Notification?> GetByIdAsync(
+        Guid notificationId,
+        CancellationToken ct = default)
+        => await _context.Notifications
+            .FirstOrDefaultAsync(n => n.Id == notificationId, ct);
+
     public void Add(Notification notification)
         => _context.Notifications.Add(notification);
 

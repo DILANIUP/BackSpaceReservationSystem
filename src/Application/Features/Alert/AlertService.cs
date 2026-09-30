@@ -64,6 +64,7 @@ public class AlertService
         {
             var notification = NotificationEntity.Create(
                 user.Id,
+                result.Value.Id,
                 $"Nueva alerta reportada: {result.Value.Description}");
 
             _notificationRepository.Add(notification);
@@ -78,6 +79,7 @@ public class AlertService
         {
             var notification = NotificationEntity.Create(
                 user.Id,
+                result.Value.Id,
                 $"Nueva alerta reportada: {result.Value.Description}");
 
             _notificationRepository.Add(notification);
@@ -111,6 +113,7 @@ public class AlertService
         {
             var notification = NotificationEntity.Create(
                 alert.CreatedBy.Value,
+                alert.Id,
                 $"Tu reporte fue atendido. {alert.ResolutionObservation}");
 
             _notificationRepository.Add(notification);

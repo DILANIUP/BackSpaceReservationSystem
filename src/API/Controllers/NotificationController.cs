@@ -34,4 +34,23 @@ public class NotificationController : ControllerBase
 
         return Ok(notifications);
     }
+
+    [HttpPut("{id}/read")]
+    public async Task<IActionResult> MarkAsRead(
+        Guid id,
+        CancellationToken ct)
+    {
+        if (!_currentUserService.UserId.HasValue)
+            return Unauthorized();
+
+        var result = await _notificationService.MarkAsReadAsync(
+            id,
+            _currentUserService.UserId.Value,
+            ct);
+
+        if (!result)
+            return NotFound();
+
+        return NoContent();
+    }
 }
