@@ -15,6 +15,9 @@ public record AlertResponse(
     Guid Id,
     AlertType Type,
     string Description,
+    DateTime CreatedAt,
+    Guid? CreatedBy,
+    string? CreatedByName,
     DateTime? ResolvedAt,  // null mientras no se resuelva
     bool IsResolved,
     string? ResolutionObservation,

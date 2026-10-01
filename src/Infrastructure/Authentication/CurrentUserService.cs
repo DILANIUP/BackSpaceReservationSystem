@@ -11,7 +11,6 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
         get
         {
             var userId = httpContextAccessor.HttpContext?.User.FindFirstValue("sub");
-
             return Guid.TryParse(userId, out var id)
                 ? id
                 : null;

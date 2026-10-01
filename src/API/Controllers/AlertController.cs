@@ -22,35 +22,16 @@ public class AlertController : ControllerBase
         if (result.IsFailure)
             return NotFound(result.Error);
 
-        var response = new AlertResponse(
-            result.Value.Id,
-            result.Value.Type,
-            result.Value.Description,
-            result.Value.ResolvedAt,
-            result.Value.IsResolved,
-            result.Value.ResolutionObservation,
-            result.Value.ResourceId,
-            result.Value.SpaceId);
-
-        return Ok(response);
+        return Ok(result.Value);
     }
 
+    // listar alertas visibles para el usuario
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var alerts = await _alertService.GetAllAsync(ct);
 
-        var response = alerts.Select(a => new AlertResponse(
-            a.Id,
-            a.Type,
-            a.Description,
-            a.ResolvedAt,
-            a.IsResolved,
-            a.ResolutionObservation,
-            a.ResourceId,
-            a.SpaceId));
-
-        return Ok(response);
+        return Ok(alerts);
     }
 
     // reportar una nueva incidencia (daño, mantenimiento)
@@ -64,17 +45,7 @@ public class AlertController : ControllerBase
         if (result.IsFailure)
             return BadRequest(result.Error);
 
-        var response = new AlertResponse(
-            result.Value.Id,
-            result.Value.Type,
-            result.Value.Description,
-            result.Value.ResolvedAt,
-            result.Value.IsResolved,
-            result.Value.ResolutionObservation,
-            result.Value.ResourceId,
-            result.Value.SpaceId);
-
-        return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, response);
+        return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
     }
 
     // marcar la incidencia como resuelta
