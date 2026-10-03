@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using SpaceReservationSystem.Application.Features.Vouchers;
 using SpaceReservationSystem.Domain.Entities;
 using SpaceReservationSystem.Domain.Enums;
@@ -132,14 +133,22 @@ public class ReservationService(
             return Result.Failure<ReservationResponse>(
                 Error.Validation("Reservation", "No puedes editar una reserva que no es tuya."));
 
-        var editResult = reservation.Edit(request.Date, request.StartTime, request.EndTime, request.Reason, request.SpaceId);
+        var normalizedDate = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
+        var editResult = reservation.Edit(normalizedDate, request.StartTime, request.EndTime, request.Reason, request.SpaceId);
         if (editResult.IsFailure)
             return Result.Failure<ReservationResponse>(editResult.Error);
 
-        // Se borran los recursos anteriores y se validan/agregan los nuevos —
-        // más simple que comparar "qué cambió" recurso por recurso, y el
-        // volumen de datos es chico (unas pocas filas por reserva).
-        reservation.ReservationResources.Clear();
+        // Se marca explícitamente cada recurso viejo como eliminado y cada uno
+        // nuevo como agregado directo en el DbSet (en vez de mutar la colección
+        // de navegación con .Clear()/.Add()) — así no queda ambigüedad para que
+        // EF intente "emparejar" un recurso viejo con uno nuevo como si fuera un
+        // simple cambio de valores. Esto corre SIEMPRE, tenga o no recursos nuevos,
+        // porque el usuario puede estar quitando todos los recursos de la reserva.
+        foreach (var old in reservation.ReservationResources.ToList())
+        {
+            reservation.ReservationResources.Remove(old);
+            reservationRepository.RemoveResource(old);
+        }
 
         if (request.Resources is { Count: > 0 })
         {
@@ -163,6 +172,7 @@ public class ReservationService(
                     return Result.Failure<ReservationResponse>(reservationResourceResult.Error);
 
                 reservation.ReservationResources.Add(reservationResourceResult.Value);
+                reservationRepository.AddResource(reservationResourceResult.Value);
             }
         }
 
@@ -250,8 +260,23 @@ public class ReservationService(
         );
     }
 
-    public Task<Result<ReservationResponse>> SubmitToCoordinatorAsync(Guid id, Guid userId, string justification, CancellationToken ct)
-        => TransitionAsync(id, userId, justification, r => r.SubmitToCoordinator(), requirementOwnerShip: true, ct);
+
+
+    public async Task<Result<ReservationResponse>> SubmitAsync(Guid id, Guid userId, RoleCode actingRole, string justification, CancellationToken ct)
+    {
+        var reservation = await reservationRepository.GetByIdAsync(id, ct);
+        if (reservation is null)
+            return Result.Failure<ReservationResponse>(Error.NotFound("Reservation", id.ToString()));
+
+        var esDueño = reservation.UserId == userId;
+        var esQuienLaCreo = reservation.CreatedBy == userId;
+
+        if (!esDueño && !esQuienLaCreo)
+            return Result.Failure<ReservationResponse>(
+                Error.Conflict("Reservation", "No puedes enviar una reserva que no te pertenece ni creaste."));
+
+        return await TransitionAsync(id, userId, justification, r => r.SubmitByRole(actingRole), requirementOwnerShip: false, ct);
+    }
 
     public Task<Result<ReservationResponse>> ElevateToVicerrectorAsync(Guid id, Guid userId, string justification, CancellationToken ct)
         => TransitionAsync(id, userId, justification, r => r.ElevatedToVicerrector(), requirementOwnerShip: false, ct);

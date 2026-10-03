@@ -11,6 +11,8 @@ public interface IReservationRepository
     Task<IEnumerable<Reservation>> GetByCareerAsync(Guid careerId, CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetAllExcludingDraftAsync(CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetForVicerrectorReviewAsync(CancellationToken ct = default);
+    void RemoveResource(ReservationResource resource);
+    void AddResource(ReservationResource resource);
     void Add(Reservation reservation);
     void Update(Reservation reservation);
     void AddHistory(ReservationHistory history);

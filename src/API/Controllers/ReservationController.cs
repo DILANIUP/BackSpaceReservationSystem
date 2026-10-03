@@ -61,9 +61,9 @@ public class ReservationController(ReservationService reservationService) : Cont
     }
 
     [HttpPost("{id:guid}/submit")]
-    [Authorize(Roles = "Student,Teacher,Admin")]
+    [Authorize(Roles = "Student,Teacher,Coordinator,Vicerrector,Bienes,Admin")]
     public Task<IActionResult> Submit(Guid id, [FromBody] TransitionRequest request, CancellationToken ct)
-        => Handle(reservationService.SubmitToCoordinatorAsync(id, GetUserId(), request.Justification, ct));
+    => Handle(reservationService.SubmitAsync(id, GetUserId(), GetUserRole(), request.Justification, ct));
 
     [HttpPost("{id:guid}/elevate")]
     [Authorize(Roles = "Coordinator,Admin")]

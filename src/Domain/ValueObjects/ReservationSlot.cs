@@ -8,15 +8,22 @@ public sealed class ReservationSlot : IEquatable<ReservationSlot>
 
     private static readonly TimeSpan MinAllowedTime = TimeSpan.FromHours(7);
     private static readonly TimeSpan MaxAllowedTime = TimeSpan.FromHours(23);
-    public DateTime Date { get; }
-    public TimeSpan StartTime { get; }
-    public TimeSpan EndTime { get; }
+    public DateTime Date { get; private set; }
+    public TimeSpan StartTime { get; private set; }
+    public TimeSpan EndTime { get; private set; }
 
     private ReservationSlot(DateTime date, TimeSpan startTime, TimeSpan endTime)
     {
         Date = date;
         StartTime = startTime;
         EndTime = endTime;
+    }
+
+    internal void UpdateFrom (ReservationSlot other)
+    {
+        Date = other.Date;
+        StartTime = other.StartTime;
+        EndTime = other.EndTime;
     }
 
     public static Result<ReservationSlot> Create(DateTime date, TimeSpan startTime, TimeSpan endTime)
