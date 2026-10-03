@@ -71,6 +71,24 @@ public class Reservation : AuditableEntity
         CurrentStatus = ReservationStatus.PendingCoordinator;
         return Result.Success();
     }
+    public Result SubmitByRole(RoleCode actingRole)
+    {
+        if (CurrentStatus != ReservationStatus.Draft)
+            return Result.Failure(ReservationErrors.InvalidStatusTransition);
+
+        // Cada rol se salta las etapas que él mismo tendría que aprobar —
+        // no tiene sentido que alguien revise/apruebe su propia solicitud.
+        CurrentStatus = actingRole switch
+        {
+            RoleCode.Student or RoleCode.Teacher => ReservationStatus.PendingCoordinator,
+            RoleCode.Coordinator => ReservationStatus.PendingVicerrector,
+            RoleCode.Vicerrector => ReservationStatus.PendingAssets,
+            RoleCode.Bienes or RoleCode.Admin => ReservationStatus.Approved,
+            _ => ReservationStatus.PendingCoordinator,
+        };
+
+        return Result.Success();
+    }
 
     public Result ElevatedToVicerrector()
     {
@@ -158,7 +176,7 @@ public class Reservation : AuditableEntity
         if (date < DateTime.UtcNow.AddHours(MinNoticeHours))
             return Result.Failure(ReservationErrors.InsufficientNotice);
 
-        Slot = slotResult.Value;
+        Slot.UpdateFrom(slotResult.Value);
         Reason = reason.Trim();
         SpaceId = spaceId;
         return Result.Success();

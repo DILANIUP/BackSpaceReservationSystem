@@ -99,6 +99,10 @@ public class ReservationRepository : IReservationRepository
             .Where(r => r.User.CareerId == careerId && r.CurrentStatus != ReservationStatus.Draft)
             .OrderByDescending(r => r.Slot.Date)
             .ToListAsync(ct);
-            
+
+
     public void AddHistory(ReservationHistory history) => _context.ReservationHistories.Add(history);
+    public void RemoveResource(ReservationResource resource) => _context.ReservationResources.Remove(resource);
+
+    public void AddResource(ReservationResource resource) => _context.ReservationResources.Add(resource);
 }
