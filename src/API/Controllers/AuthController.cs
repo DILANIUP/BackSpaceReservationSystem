@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SpaceReservationSystem.Application.Features.Auth;
+using SpaceReservationSystem.Domain.Errors;
 
 namespace SpaceReservationSystem.API.Controllers;
 
@@ -11,9 +12,13 @@ public class AuthController(AuthService authService) : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
         var result = await authService.RegisterAsync(request, ct);
-        return result.IsSuccess
-            ? CreatedAtAction(nameof(Register), new{ id = result.Value.UserId }, result.Value)
-            : BadRequest(new {result.Error.Code, result.Error.Description});
+        if (result.IsSuccess)
+            return CreatedAtAction(nameof(Register), new { id = result.Value.UserId }, result.Value);
+
+        var error = new { result.Error.Code, result.Error.Description };
+        return result.Error.Code == UserErrors.EmailAlreadyExists.Code
+            ? Conflict(error)      // 409
+            : BadRequest(error);   // 400
     }
 
     [HttpPost("login")]

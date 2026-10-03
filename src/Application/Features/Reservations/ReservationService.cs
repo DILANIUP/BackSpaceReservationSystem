@@ -6,6 +6,7 @@ using SpaceReservationSystem.Domain.Enums;
 using SpaceReservationSystem.Domain.Errors;
 using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Domain.Primitives;
+using System.Text.RegularExpressions;
 
 namespace SpaceReservationSystem.Application.Features.Reservations;
 

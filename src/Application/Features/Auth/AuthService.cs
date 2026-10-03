@@ -4,6 +4,9 @@ using SpaceReservationSystem.Domain.Errors;
 using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Domain.Primitives;
 using SpaceReservationSystem.Infrastructure.Authentication;
+
+using System.Text.RegularExpressions;
+
 using EmailValueObject = SpaceReservationSystem.Domain.ValueObjects.Email;
 
 namespace SpaceReservationSystem.Application.Features.Auth;
@@ -11,26 +14,57 @@ namespace SpaceReservationSystem.Application.Features.Auth;
 public class AuthService(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
+    ICareerRepository careerRepository,
     IUnitOfWork unitOfWork,
     IPasswordHasher passwordHasher,
     ITokenService tokenService
 )
 {
+    private const string InstitutionalDomain = "@unibe.com";
+    private static readonly Regex NameRegex = new(@"^[\p{L}\s'.-]+$");
+    private static readonly Regex PhoneRegex = new(@"^\d{7,10}$");
+
+    private static (string Field, string Message)? ValidateRegister(RegisterRequest r)
+    {
+        var name = r.Name?.Trim() ?? "";
+        if (name.Length < 3 || name.Length > 150 || !NameRegex.IsMatch(name))
+            return ("Name", "El nombre debe tener entre 3 y 150 letras.");
+
+        var email = r.Email?.Trim() ?? "";
+        if (email.Length <= InstitutionalDomain.Length ||
+            !email.EndsWith(InstitutionalDomain, StringComparison.OrdinalIgnoreCase))
+            return ("Email", $"Usa tu correo institucional ({InstitutionalDomain}).");
+
+        if (!PhoneRegex.IsMatch(r.Phone ?? ""))
+            return ("Phone", "El teléfono debe tener entre 7 y 10 dígitos.");
+
+        var pwd = r.Password ?? "";
+        if (pwd.Length < 8 || !pwd.Any(char.IsLetter) || !pwd.Any(char.IsDigit))
+            return ("Password", "La contraseña debe tener 8 caracteres, con letras y números.");
+
+        if (r.RequestedRole != RoleCode.Student && r.RequestedRole != RoleCode.Teacher)
+            return ("RequestedRole", "Solo puedes registrarte como Estudiante o Docente.");
+
+        if (r.CareerId is null || r.CareerId == Guid.Empty)
+            return ("CareerId", "Debes seleccionar una carrera.");
+
+        return null;
+    }
     public async Task<Result<RegisterResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
-        if(string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
-            return Result.Failure<RegisterResponse>(Error.Validation("Password", "Password must be at least 6 characters."));
-
-        if(request.RequestedRole != RoleCode.Student && request.RequestedRole != RoleCode.Teacher)
-            return Result.Failure<RegisterResponse>(
-                Error.Validation("RequestRole", "Solo puedes registrarte como Student o Teacher"));
+        var invalid = ValidateRegister(request);
+        if (invalid is not null)
+            return Result.Failure<RegisterResponse>(Error.Validation(invalid.Value.Field, invalid.Value.Message));
 
         var emailResult = EmailValueObject.Create(request.Email);
         if(emailResult.IsFailure)
             return Result.Failure<RegisterResponse>(emailResult.Error);
 
-        if(await userRepository.ExistsByEmailAsync(emailResult.Value, ct))
-            return Result.Failure<RegisterResponse>(UserErrors.InvalidEmail);
+        if (await userRepository.ExistsByEmailAsync(emailResult.Value, ct))
+            return Result.Failure<RegisterResponse>(UserErrors.EmailAlreadyExists);
+
+        if (await careerRepository.GetByIdAsync(request.CareerId!.Value, ct) is null)
+            return Result.Failure<RegisterResponse>(Error.Validation("CareerId", "La carrera seleccionada no existe."));
 
         var role = await roleRepository.GetByCodeAsync(request.RequestedRole, ct);
         if(role is null)
@@ -61,7 +95,7 @@ public class AuthService(
 
         var user =  await userRepository.GetByEmailAsync(emailResult.Value, ct); // ya incluye Role (Include agregado en UserRepository)
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
-            return Result.Failure<LoginResponse>(Error.Validation("Credentials", "Invalid email or password."));
+            return Result.Failure<LoginResponse>(Error.Validation("Credentials", "Correo o contraseña incorrectos."));
 
         var role = await roleRepository.GetByIdAsync(user.RoleId, ct);
         if (role is null)

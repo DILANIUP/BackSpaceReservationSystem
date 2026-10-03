@@ -21,13 +21,14 @@ public static class CareerErrors
 
 public static class UserErrors
 {
-    public static readonly Error InvalidName = new("User.InvalidName", "The name of the user is invalid.");
-    public static readonly Error InvalidEmail = new("User.InvalidEmail", "The email is invalid.");
-    public static readonly Error InvalidPhone = new("User.InvalidPhone", "The phone is invalid.");
-    public static readonly Error InvalidRole = new("User.InvalidRole", "A valid role id is required.");
-    public static readonly Error InvalidCareer = new("User.InvalidCareer", "A valid career id is required.");
-    public static readonly Error InvalidPassword = new("User.InvalidPassword", "The password hash is invalid.");
-    public static readonly Error NotFound = new("User.NotFound", "The user was not found.");
+    public static readonly Error InvalidName = new("User.InvalidName", "El nombre no es válido.");
+    public static readonly Error InvalidEmail = new("User.InvalidEmail", "El correo no es válido.");
+    public static readonly Error InvalidPhone = new("User.InvalidPhone", "El teléfono no es válido.");
+    public static readonly Error InvalidRole = new("User.InvalidRole", "El rol no es válido.");
+    public static readonly Error InvalidCareer = new("User.InvalidCareer", "Debes seleccionar una carrera.");
+    public static readonly Error InvalidPassword = new("User.InvalidPassword", "La contraseña no es válida.");
+    public static readonly Error NotFound = new("Role.NotFound", "No se encontró el rol.");
+    public static readonly Error EmailAlreadyExists = new("User.EmailAlreadyExists", "Este correo ya está registrado.");
 }
 
 public static class SpaceErrors
