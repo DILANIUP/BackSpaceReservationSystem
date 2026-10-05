@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SpaceReservationSystem.Application.Features.Space;
 
 namespace SpaceReservationSystem.API.Controllers;
+
 using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
@@ -31,6 +32,26 @@ public class SpaceController : ControllerBase
         ));
 
         return Ok(response);
+    }
+
+    
+    // Solo Bienes (y Admin): es la pieza de la pantalla de Asignaciones.
+    [HttpGet("available")]
+    [Authorize(Roles = "Bienes,Admin")]
+    public async Task<IActionResult> GetAvailable(
+        [FromQuery] DateTime date,
+        [FromQuery] TimeSpan startTime,
+        [FromQuery] TimeSpan endTime,
+        [FromQuery] Guid? excludeReservationId,
+        CancellationToken ct)
+    {
+        if (endTime <= startTime)
+            return BadRequest(new { Code = "InvalidTimeRange", Description = "La hora de fin debe ser mayor a la de inicio." });
+
+        var spaces = await _spaceService.GetAvailableAsync(date, startTime, endTime, excludeReservationId, ct);
+
+        return Ok(spaces.Select(s => new SpaceResponse(
+            s.Id, s.Name, s.Type, s.Capacity, s.Location, s.IsActive)));
     }
 
     [HttpGet("{id:guid}")]

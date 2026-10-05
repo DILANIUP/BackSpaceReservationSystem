@@ -83,7 +83,8 @@ public class Reservation : AuditableEntity
             RoleCode.Student or RoleCode.Teacher => ReservationStatus.PendingCoordinator,
             RoleCode.Coordinator => ReservationStatus.PendingVicerrector,
             RoleCode.Vicerrector => ReservationStatus.PendingAssets,
-            RoleCode.Bienes or RoleCode.Admin => ReservationStatus.Approved,
+            RoleCode.Bienes => ReservationStatus.PendingVicerrector,
+            RoleCode.Admin => ReservationStatus.Approved,
             _ => ReservationStatus.PendingCoordinator,
         };
 
@@ -113,8 +114,11 @@ public class Reservation : AuditableEntity
         if (CurrentStatus != ReservationStatus.PendingAssets)
             return Result.Failure(ReservationErrors.InvalidStatusTransition);
 
-        if (SpaceId is not null)
-            SpaceId = SpaceId.Value;
+        // Si Bienes eligió un espacio, ese pasa a ser el definitivo.
+        // Si viene null se conserva el que ya tenía la reserva (o ninguno,
+        // en el caso de reservas solo de recursos).
+        if (spaceId is not null)
+            SpaceId = spaceId;
 
         CurrentStatus = ReservationStatus.Approved;
         return Result.Success();

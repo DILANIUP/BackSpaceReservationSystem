@@ -60,6 +60,16 @@ public class ReservationController(ReservationService reservationService) : Cont
             : BadRequest(new { result.Error.Code, result.Error.Description });
     }
 
+    [HttpGet("assets")]
+    [Authorize(Roles = "Bienes, Admin")]
+    public async Task<IActionResult> GetForAssets(CancellationToken ct)
+    {
+        var result = await reservationService.GetForAssetsAsync(ct);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(new { result.Error.Code, result.Error.Description });
+    }
+
     [HttpPost("{id:guid}/submit")]
     [Authorize(Roles = "Student,Teacher,Coordinator,Vicerrector,Bienes,Admin")]
     public Task<IActionResult> Submit(Guid id, [FromBody] TransitionRequest request, CancellationToken ct)

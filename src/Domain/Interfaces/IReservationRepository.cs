@@ -10,14 +10,15 @@ public interface IReservationRepository
     // Busca reservas de un recurso para una fecha
     //Task<IEnumerable<Reservation>> GetActiveByResourceAndDateAsync(Guid resourceId, DateTime date, CancellationToken ct = default);
 
-    // Busca reservas próximas de un recurso
+    // Busca reservas prï¿½ximas de un recurso
     //Task<IEnumerable<Reservation>> GetUpcomingByResourceAsync(Guid resourceId, DateTime fromDate, CancellationToken ct = default);
-    // Busca reservas próximas de un espacio
+    // Busca reservas prï¿½ximas de un espacio
     //Task<IEnumerable<Reservation>> GetUpcomingBySpaceAsync( Guid spaceId, DateTime fromDate, CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetByCareerAsync(Guid careerId, CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetAllExcludingDraftAsync(CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetForVicerrectorReviewAsync(CancellationToken ct = default);
+    Task<IEnumerable<Reservation>> GetForAssetsReviewAsync(CancellationToken ct = default);
     void RemoveResource(ReservationResource resource);
     void AddResource(ReservationResource resource);
     void Add(Reservation reservation);

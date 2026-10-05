@@ -18,7 +18,7 @@ public class SpaceService
         _spaceRepository = spaceRepository;
         _unitOfWork = unitOfWork;
     }
-    
+
     // Obtencion de un espacio por ID
     public async Task<Result<SpaceEntity>> GetByIdAsync(
         Guid id,
@@ -37,6 +37,18 @@ public class SpaceService
         CancellationToken ct = default
     ) => await _spaceRepository.GetAllAsync(ct);
 
+    // Espacios libres en un rango horario (para la pantalla de Asignaciones).
+    public async Task<IEnumerable<SpaceEntity>> GetAvailableAsync(
+        DateTime date, TimeSpan startTime, TimeSpan endTime,
+        Guid? excludeReservationId, CancellationToken ct = default)
+    {
+        // El query param llega con Kind=Unspecified y Npgsql no lo acepta contra
+        // columnas timestamptz. Se normaliza a UTC igual que en CreateAsync.
+        var normalizedDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+
+        return await _spaceRepository.GetAvailableAsync(
+            normalizedDate, startTime, endTime, excludeReservationId, ct);
+    }
     // Creacion de un espacio
     public async Task<Result<SpaceEntity>> CreateAsync(
         string name,

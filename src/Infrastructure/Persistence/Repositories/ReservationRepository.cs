@@ -47,7 +47,7 @@ public class ReservationRepository : IReservationRepository
                 && r.CurrentStatus != ReservationStatus.Draft)
             .ToListAsync(ct);
 
-    // Busca reservas próximas de un recurso
+    // Busca reservas prï¿½ximas de un recurso
     public async Task<IEnumerable<Reservation>> GetUpcomingByResourceAsync(Guid resourceId, DateTime fromDate, CancellationToken ct = default)
         => await _context.Reservations
             .Where(r => r.ReservationResources.Any(rr => rr.ResourceId == resourceId)
@@ -91,6 +91,15 @@ public class ReservationRepository : IReservationRepository
             .OrderByDescending(r => r.Slot.Date)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<Reservation>> GetForAssetsReviewAsync(CancellationToken ct = default)
+        => await _context.Reservations
+            .Include(r => r.User).ThenInclude(u => u.Role)
+            .Include(r => r.User).ThenInclude(u => u.Career)
+            .Include(r => r.Space)
+            .Where(r => r.CurrentStatus == ReservationStatus.PendingAssets
+                || r.CurrentStatus == ReservationStatus.Approved)
+            .OrderByDescending(r => r.Slot.Date)
+            .ToListAsync(ct);
     public async Task<IEnumerable<Reservation>> GetByCareerAsync(Guid careerId, CancellationToken ct = default)
         => await _context.Reservations
             .Include(r => r.User).ThenInclude(u => u.Role)

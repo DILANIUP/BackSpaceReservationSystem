@@ -221,6 +221,14 @@ public class ReservationService(
         return Result.Success(reservations.Select(ToResponse));
     }
 
+    // NUEVO: bandeja de Bienes. A diferencia de GetByCareerAsync, sin filtro por carrera.
+    // REsuamos response para no repetir al mapeo
+    public async Task<Result<IEnumerable<ReservationResponse>>> GetForAssetsAsync(CancellationToken ct)
+    {
+        var reservations = await reservationRepository.GetForAssetsReviewAsync(ct);
+        return Result.Success(reservations.Select(ToResponse));
+    }
+
     // NUEVO: se extrajo el mapeo Reservation -> ReservationResponse a un método
     // propio porque ya lo estábamos repitiendo igual en GetByCareerAsync y ahora
     // en GetForVicerrectorAsync. "static" porque no usa ningún campo de la clase,
@@ -276,7 +284,19 @@ public class ReservationService(
             return Result.Failure<ReservationResponse>(
                 Error.Conflict("Reservation", "No puedes enviar una reserva que no te pertenece ni creaste."));
 
-        return await TransitionAsync(id, userId, justification, r => r.SubmitByRole(actingRole), requirementOwnerShip: false, ct);
+        var result = await TransitionAsync(id, userId, justification, r => r.SubmitByRole(actingRole), requirementOwnerShip: false, ct);
+
+        // Admin salta todas las etapas y su reserva queda Approved de inmediato.
+        // Como el voucher normalmente se genera en "assign", acá hay que
+        // generarlo a mano para que no quede aprobada sin comprobante.
+        if (result.IsSuccess && result.Value.CurrentStatus == nameof(ReservationStatus.Approved))
+        {
+            var voucherResult = await voucherService.GenerateAsync(new GenerateVoucherRequest(id), ct);
+            if (voucherResult.IsFailure)
+                return Result.Failure<ReservationResponse>(voucherResult.Error);
+        }
+
+        return result;
     }
 
     public Task<Result<ReservationResponse>> ElevateToVicerrectorAsync(Guid id, Guid userId, string justification, CancellationToken ct)
