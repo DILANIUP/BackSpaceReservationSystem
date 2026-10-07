@@ -29,23 +29,45 @@ public class ReservationRepository : IReservationRepository
 
     public void Update(Reservation reservation) => _context.Reservations.Update(reservation);
 
-    public async Task<IEnumerable<Reservation>> GetActiveBySpaceAndDateAsync(Guid spaceId, DateTime date, CancellationToken ct = default)
-        => await _context.Reservations
-            .Where(r => r.SpaceId == spaceId
-                && r.Slot.Date == date.Date
-                && r.CurrentStatus != ReservationStatus.Rejected
-                && r.CurrentStatus != ReservationStatus.Cancelled)
-            .ToListAsync(ct);
+    public async Task<IEnumerable<Reservation>> GetActiveBySpaceAndDateAsync(
+        Guid spaceId,
+        DateTime date,
+        CancellationToken ct = default)
+    {
+        var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var endOfDay = startOfDay.AddDays(1);
 
-    // Busca reservas de un recurso para una fecha
-    public async Task<IEnumerable<Reservation>> GetActiveByResourceAndDateAsync(Guid resourceId, DateTime date, CancellationToken ct = default)
-        => await _context.Reservations
-            .Where(r => r.ReservationResources.Any(rr => rr.ResourceId == resourceId)
-                && r.Slot.Date == date.Date
+        return await _context.Reservations
+            .Where(r =>
+                r.SpaceId == spaceId
+                && r.Slot.Date >= startOfDay
+                && r.Slot.Date < endOfDay
                 && r.CurrentStatus != ReservationStatus.Rejected
                 && r.CurrentStatus != ReservationStatus.Cancelled
                 && r.CurrentStatus != ReservationStatus.Draft)
             .ToListAsync(ct);
+    }
+
+    // Busca reservas de un recurso para una fecha
+    public async Task<IEnumerable<Reservation>> GetActiveByResourceAndDateAsync(
+        Guid resourceId,
+        DateTime date,
+        CancellationToken ct = default)
+    {
+        var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var endOfDay = startOfDay.AddDays(1);
+
+        return await _context.Reservations
+            .Include(r => r.ReservationResources)
+            .Where(r =>
+                r.ReservationResources.Any(rr => rr.ResourceId == resourceId)
+                && r.Slot.Date >= startOfDay
+                && r.Slot.Date < endOfDay
+                && r.CurrentStatus != ReservationStatus.Rejected
+                && r.CurrentStatus != ReservationStatus.Cancelled
+                && r.CurrentStatus != ReservationStatus.Draft)
+            .ToListAsync(ct);
+    }
 
     // Busca reservas pr�ximas de un recurso
     public async Task<IEnumerable<Reservation>> GetUpcomingByResourceAsync(Guid resourceId, DateTime fromDate, CancellationToken ct = default)

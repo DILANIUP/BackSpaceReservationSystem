@@ -29,6 +29,23 @@ public class ReservationController(ReservationService reservationService) : Cont
         return Ok(reservations);
     }
 
+    // Consulta la disponibilidad real de los recursos para una fecha y horario
+    [HttpGet("resource-availability")]
+    public async Task<IActionResult> GetResourceAvailability(
+        [FromQuery] DateTime date,
+        [FromQuery] TimeSpan startTime,
+        [FromQuery] TimeSpan endTime,
+        CancellationToken ct)
+    {
+        var result = await reservationService.GetResourceAvailabilityAsync(
+            date,
+            startTime,
+            endTime,
+            ct);
+
+        return Ok(result);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {

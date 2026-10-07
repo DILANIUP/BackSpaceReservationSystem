@@ -6,6 +6,7 @@ using SpaceReservationSystem.Domain.Enums;
 using SpaceReservationSystem.Domain.Errors;
 using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Domain.Primitives;
+using SpaceReservationSystem.Domain.ValueObjects;
 using System.Text.RegularExpressions;
 
 namespace SpaceReservationSystem.Application.Features.Reservations;
@@ -98,15 +99,37 @@ public class ReservationService(
                 var resource = await resourceRepository.GetByIdAsync(item.ResourceId, ct);
 
                 if (resource is null)
-                    return Result.Failure<ReservationResponse>(Error.NotFound("Resource", item.ResourceId.ToString()));
+                    return Result.Failure<ReservationResponse>(
+                        Error.NotFound("Resource", item.ResourceId.ToString()));
 
                 if (!resource.Status)
-                    return Result.Failure<ReservationResponse>(Error.Conflict("Resource", $"El recurso '{resource.Name}' está inactivo."));
+                    return Result.Failure<ReservationResponse>(
+                        Error.Conflict("Resource", $"El recurso '{resource.Name}' está inactivo."));
 
-                if (item.Quantity > resource.AvailableQuantity)
-                    return Result.Failure<ReservationResponse>(Error.Conflict("Resource", $"Cantidad insuficiente para '{resource.Name}'."));
+                var existingReservations = await reservationRepository
+                    .GetActiveByResourceAndDateAsync(resource.Id, normalizedDate, ct);
 
-                var reservationResourceResult = ReservationResource.Create(item.Quantity, reservation.Id, resource.Id);
+                var reservedQuantity = existingReservations
+                    .Where(r => r.Slot.Overlaps(reservation.Slot))
+                    .SelectMany(r => r.ReservationResources)
+                    .Where(rr => rr.ResourceId == resource.Id)
+                    .Sum(rr => rr.RequestedQuantity);
+
+                var availableQuantity = resource.AvailableQuantity - reservedQuantity;
+
+                if (item.Quantity > availableQuantity)
+                {
+                    return Result.Failure<ReservationResponse>(
+                        Error.Conflict(
+                            "Resource",
+                            $"Cantidad insuficiente para '{resource.Name}'. Disponible: {Math.Max(0, availableQuantity)}."));
+                }
+
+                var reservationResourceResult = ReservationResource.Create(
+                    item.Quantity,
+                    reservation.Id,
+                    resource.Id);
+
                 if (reservationResourceResult.IsFailure)
                     return Result.Failure<ReservationResponse>(reservationResourceResult.Error);
 
@@ -180,12 +203,54 @@ public class ReservationService(
         await unitOfWork.SaveChangesAsync(ct);
         return ToResponse(reservation);
     }
+
+    public async Task<IEnumerable<ResourceAvailabilityResponse>> GetResourceAvailabilityAsync(
+    DateTime date,
+    TimeSpan startTime,
+    TimeSpan endTime,
+    CancellationToken ct)
+    {
+        // Normaliza la fecha a UTC para que PostgreSQL pueda compararla con timestamp with time zone
+        var normalizedDate = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+        var slotResult = ReservationSlot.Create(normalizedDate, startTime, endTime);
+
+        if (slotResult.IsFailure)
+            return [];
+
+        var requestedSlot = slotResult.Value;
+
+        var resources = await resourceRepository.GetAllAsync(ct);
+
+        var result = new List<ResourceAvailabilityResponse>();
+
+        foreach (var resource in resources.Where(r => r.Status))
+        {
+            var reservations = await reservationRepository
+                .GetActiveByResourceAndDateAsync(resource.Id, normalizedDate, ct);
+
+            var reserved = reservations
+                .Where(r => r.Slot.Overlaps(requestedSlot))
+                .SelectMany(r => r.ReservationResources)
+                .Where(rr => rr.ResourceId == resource.Id)
+                .Sum(rr => rr.RequestedQuantity);
+
+            result.Add(new ResourceAvailabilityResponse(
+                resource.Id,
+                resource.Name,
+                resource.AvailableQuantity,
+                reserved,
+                Math.Max(0, resource.AvailableQuantity - reserved)
+            ));
+        }
+
+        return result;
+    }
     public async Task<IEnumerable<ReservationResponse>> GetMineAsync(Guid userId, CancellationToken ct)
     {
         var reservations = await reservationRepository.GetByUserIdAsync(userId, ct);
         return reservations.Select(ToResponse);
     }
-
+    // Calcula la disponibilidad de cada recurso según la fecha y el horario solicitado
     public async Task<Result<IEnumerable<ReservationResponse>>> GetByCareerAsync(Guid actingUserId, RoleCode actingRole, CancellationToken ct)
     {
         IEnumerable<Reservation> reservations;

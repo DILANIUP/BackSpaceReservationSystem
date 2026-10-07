@@ -24,6 +24,14 @@ public sealed record ReservationResponse(
     string? SpaceName = null,
     string? CareerName = null
 );
+// NUEVO
+public record ResourceAvailabilityResponse(
+    Guid ResourceId,
+    string Name,
+    int Total,
+    int Reserved,
+    int Available
+);
 
 public sealed record ReservationDetailResponse (
     Guid Id,
