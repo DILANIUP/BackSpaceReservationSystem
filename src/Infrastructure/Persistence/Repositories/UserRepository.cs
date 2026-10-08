@@ -26,7 +26,9 @@ public class UserRepository : IUserRepository
     public async Task<bool> ExistsByEmailAsync(Email email, CancellationToken ct = default)
         => await _context.Users
             .AnyAsync(u => u.Email.Value == email.Value, ct);
-
+    public async Task<bool> ExistsByIdentificationNumberAsync(string identificationNumber,CancellationToken ct = default)
+        => await _context.Users
+            .AnyAsync(u => u.IdentificationNumber == identificationNumber, ct);
     // NUEVO: alimenta el selector "¿Para quién es esta reserva?" en el
     // frontend. role/careerId son opcionales — null significa "sin filtrar por
     // eso". Coordinator siempre va a mandar los dos (Student/Teacher + su

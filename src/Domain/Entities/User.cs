@@ -10,6 +10,7 @@ public class User : AuditableEntity
     public Email Email { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
     public string Phone { get; private set; } = null!;
+    public string? IdentificationNumber { get; private set; }
     public Guid RoleId { get; private set; }
     public Role Role { get; private set; } = null!; //* es nullable porque no todos los roles necesariamente tienen asignacion
     public Guid? CareerId { get; private set; }
@@ -17,13 +18,13 @@ public class User : AuditableEntity
     public ICollection<Reservation> Reservations { get; private set; } = new List<Reservation>();
     public ICollection<ReservationHistory> ReservationHistories { get; set; } = new List<ReservationHistory>();
 
-    private User(Guid id, string name, Email email, string passwordHash, string phone, Guid roleId, Guid? careerId) 
-        : base(id)
+    private User(Guid id, string name, Email email, string passwordHash, string phone, string? identificationNumber, Guid roleId, Guid? careerId) : base(id)
     {
         Name = name;
         Email = email;
         PasswordHash = passwordHash;
         Phone = phone;
+        IdentificationNumber = identificationNumber;
         RoleId = roleId;
         CareerId = careerId;
     }
@@ -36,6 +37,7 @@ public class User : AuditableEntity
         Email email,
         string passwordHash,
         string phone,
+        string identificationNumber,
         Guid roleId,
         Guid? careerId = null
     )
@@ -52,7 +54,7 @@ public class User : AuditableEntity
         if(roleId == Guid.Empty)
             return Result.Failure<User>(UserErrors.InvalidRole);
                 
-        return new User(Guid.NewGuid(), name.Trim(), email,passwordHash, phone.Trim(), roleId, careerId);
+        return new User(Guid.NewGuid(), name.Trim(), email,passwordHash, phone.Trim(), identificationNumber.Trim(), roleId, careerId);
 
     }
 

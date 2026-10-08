@@ -20,9 +20,9 @@ public class AuthService(
     ITokenService tokenService
 )
 {
-    private const string InstitutionalDomain = "@unibe.com";
+    private const string InstitutionalDomain = "@unibe.edu.ec";
     private static readonly Regex NameRegex = new(@"^[\p{L}\s'.-]+$");
-    private static readonly Regex PhoneRegex = new(@"^\d{7,10}$");
+    private static readonly Regex PhoneRegex = new(@"^\d{10}$");
 
     private static (string Field, string Message)? ValidateRegister(RegisterRequest r)
     {
@@ -36,7 +36,10 @@ public class AuthService(
             return ("Email", $"Usa tu correo institucional ({InstitutionalDomain}).");
 
         if (!PhoneRegex.IsMatch(r.Phone ?? ""))
-            return ("Phone", "El teléfono debe tener entre 7 y 10 dígitos.");
+            return ("Phone", "El teléfono debe tener exactamente 10 dígitos.");
+
+        if (!Regex.IsMatch(r.IdentificationNumber ?? "", @"^\d{10}$"))
+            return ("IdentificationNumber", "La cédula debe tener exactamente 10 dígitos.");
 
         var pwd = r.Password ?? "";
         if (pwd.Length < 8 || !pwd.Any(char.IsLetter) || !pwd.Any(char.IsDigit))
@@ -63,6 +66,10 @@ public class AuthService(
         if (await userRepository.ExistsByEmailAsync(emailResult.Value, ct))
             return Result.Failure<RegisterResponse>(UserErrors.EmailAlreadyExists);
 
+        if (await userRepository.ExistsByIdentificationNumberAsync(request.IdentificationNumber, ct))
+            return Result.Failure<RegisterResponse>(
+                Error.Validation("IdentificationNumber", "La cédula ya está registrada."));
+
         if (await careerRepository.GetByIdAsync(request.CareerId!.Value, ct) is null)
             return Result.Failure<RegisterResponse>(Error.Validation("CareerId", "La carrera seleccionada no existe."));
 
@@ -72,8 +79,9 @@ public class AuthService(
 
         var passwordHash = passwordHasher.Hash(request.Password);
 
-        var userResult = Domain.Entities.User.Create(request.Name, emailResult.Value, passwordHash, request.Phone, role.Id, request.CareerId);
-        if(userResult.IsFailure)
+        var userResult = Domain.Entities.User.Create(request.Name,emailResult.Value,passwordHash,request.Phone,request.IdentificationNumber,role.Id,request.CareerId);
+        
+        if (userResult.IsFailure)
             return Result.Failure<RegisterResponse>(userResult.Error);
 
         var user = userResult.Value;

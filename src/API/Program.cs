@@ -3,9 +3,18 @@ using QuestPDF.Infrastructure;
 using SpaceReservationSystem.API.Middlewares;
 using SpaceReservationSystem.Infrastructure;
 
-QuestPDF.Settings.License = LicenseType.Community;
-var builder = WebApplication.CreateBuilder(args);
+//try
+//{
+//    QuestPDF.Settings.License = LicenseType.Community;
+//}
+//catch (Exception ex)
+//{
+//    Console.WriteLine($"QuestPDF no pudo inicializarse: {ex.Message}");
+//}
 
+//QuestPDF.Settings.License = LicenseType.Community; - ESTO ESTABA ANTES
+
+var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration); // Agrega la infraestructura y la base de datos al contenedor de servicios
 
 builder.Services.AddControllers();
