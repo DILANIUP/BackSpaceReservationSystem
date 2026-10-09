@@ -157,7 +157,8 @@ public class ReservationService(
             return Result.Failure<ReservationResponse>(
                 Error.Validation("Reservation", "No puedes editar una reserva que no es tuya."));
 
-        var normalizedDate = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
+        //var normalizedDate = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
+        var normalizedDate = DateTime.SpecifyKind(request.Date.Date, DateTimeKind.Unspecified);
         var editResult = reservation.Edit(normalizedDate, request.StartTime, request.EndTime, request.Reason, request.SpaceId);
         if (editResult.IsFailure)
             return Result.Failure<ReservationResponse>(editResult.Error);
@@ -211,7 +212,8 @@ public class ReservationService(
     CancellationToken ct)
     {
         // Normaliza la fecha a UTC para que PostgreSQL pueda compararla con timestamp with time zone
-        var normalizedDate = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+        //var normalizedDate = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+        var normalizedDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Unspecified);
         var slotResult = ReservationSlot.Create(normalizedDate, startTime, endTime);
 
         if (slotResult.IsFailure)

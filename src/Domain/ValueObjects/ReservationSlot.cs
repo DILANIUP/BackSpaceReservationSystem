@@ -8,6 +8,7 @@ public sealed class ReservationSlot : IEquatable<ReservationSlot>
 
     private static readonly TimeSpan MinAllowedTime = TimeSpan.FromHours(7);
     private static readonly TimeSpan MaxAllowedTime = TimeSpan.FromHours(23);
+    private static readonly TimeSpan MaxDuration = TimeSpan.FromHours(2);
     public DateTime Date { get; private set; }
     public TimeSpan StartTime { get; private set; }
     public TimeSpan EndTime { get; private set; }
@@ -33,6 +34,10 @@ public sealed class ReservationSlot : IEquatable<ReservationSlot>
 
         if (endTime <= startTime)
             return Result.Failure<ReservationSlot>(ReservationErrors.InvalidTimeRange);
+
+        if (endTime - startTime > MaxDuration)
+            return Result.Failure<ReservationSlot>(
+                Error.Validation("EndTime", "La reserva no puede durar más de 2 horas."));
 
         if (startTime < MinAllowedTime || endTime > MaxAllowedTime)
             return Result.Failure<ReservationSlot>(ReservationErrors.OutsideAllowedHours);
