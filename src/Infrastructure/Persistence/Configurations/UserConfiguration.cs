@@ -33,5 +33,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .WithMany(c => c.Users)
             .HasForeignKey(u => u.CareerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Property(u => u.IsActive)
+             .HasDefaultValue(true);
     }
 }

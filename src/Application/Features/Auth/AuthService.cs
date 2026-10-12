@@ -1,4 +1,4 @@
-
+using SpaceReservationSystem.Domain.Entities;
 using SpaceReservationSystem.Domain.Enums;
 using SpaceReservationSystem.Domain.Errors;
 using SpaceReservationSystem.Domain.Interfaces;
@@ -20,11 +20,16 @@ public class AuthService(
     ITokenService tokenService
 )
 {
+    // Dominio de tu compañera. Debe coincidir con el que arma el frontend
+    // (register.component.ts y el modal de user-list.ts).
     private const string InstitutionalDomain = "@unibe.edu.ec";
     private static readonly Regex NameRegex = new(@"^[\p{L}\s'.-]+$");
     private static readonly Regex PhoneRegex = new(@"^\d{10}$");
 
-    private static (string Field, string Message)? ValidateRegister(RegisterRequest r)
+    // Validaciones estrictas (de tu compañera) aplicadas a AMBOS caminos:
+    // registro público y creación por Admin. Así un Admin no puede crear
+    // usuarios con datos que el registro público rechazaría.
+    private static (string Field, string Message)? ValidateRegister(RegisterRequest r, bool isAdminCreation = false)
     {
         var name = r.Name?.Trim() ?? "";
         if (name.Length < 3 || name.Length > 150 || !NameRegex.IsMatch(name))
@@ -45,65 +50,106 @@ public class AuthService(
         if (pwd.Length < 8 || !pwd.Any(char.IsLetter) || !pwd.Any(char.IsDigit))
             return ("Password", "La contraseña debe tener 8 caracteres, con letras y números.");
 
-        if (r.RequestedRole != RoleCode.Student && r.RequestedRole != RoleCode.Teacher)
+        // Tuyo: solo el registro público se limita a Student/Teacher.
+        // El Admin puede crear cualquier rol.
+        if (!isAdminCreation && r.RequestedRole != RoleCode.Student && r.RequestedRole != RoleCode.Teacher)
             return ("RequestedRole", "Solo puedes registrarte como Estudiante o Docente.");
 
-        if (r.CareerId is null || r.CareerId == Guid.Empty)
+        // Tuyo: la carrera solo es obligatoria para Student, Teacher y Coordinator.
+        // Vicerrector, Bienes y Admin pueden no tener carrera.
+        var careerRequired = r.RequestedRole is RoleCode.Student or RoleCode.Teacher or RoleCode.Coordinator;
+        if (careerRequired && (r.CareerId is null || r.CareerId == Guid.Empty))
             return ("CareerId", "Debes seleccionar una carrera.");
 
         return null;
     }
-    public async Task<Result<RegisterResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct)
+
+    // Lógica común de crear un usuario: la usan el registro público y la
+    // creación por Admin. Devuelve el usuario y su rol (el rol hace falta para el token).
+    private async Task<Result<(Domain.Entities.User User, Role Role)>> CreateUserAsync(
+        RegisterRequest request, bool isAdminCreation, CancellationToken ct)
     {
-        var invalid = ValidateRegister(request);
+        var invalid = ValidateRegister(request, isAdminCreation);
         if (invalid is not null)
-            return Result.Failure<RegisterResponse>(Error.Validation(invalid.Value.Field, invalid.Value.Message));
+            return Result.Failure<(Domain.Entities.User User, Role Role)>(
+                Error.Validation(invalid.Value.Field, invalid.Value.Message));
 
         var emailResult = EmailValueObject.Create(request.Email);
-        if(emailResult.IsFailure)
-            return Result.Failure<RegisterResponse>(emailResult.Error);
+        if (emailResult.IsFailure)
+            return Result.Failure<(Domain.Entities.User User, Role Role)>(emailResult.Error);
 
         if (await userRepository.ExistsByEmailAsync(emailResult.Value, ct))
-            return Result.Failure<RegisterResponse>(UserErrors.EmailAlreadyExists);
+            return Result.Failure<(Domain.Entities.User User, Role Role)>(UserErrors.EmailAlreadyExists);
 
+        // De tu compañera: la cédula es única.
         if (await userRepository.ExistsByIdentificationNumberAsync(request.IdentificationNumber, ct))
-            return Result.Failure<RegisterResponse>(
+            return Result.Failure<(Domain.Entities.User User, Role Role)>(
                 Error.Validation("IdentificationNumber", "La cédula ya está registrada."));
 
-        if (await careerRepository.GetByIdAsync(request.CareerId!.Value, ct) is null)
-            return Result.Failure<RegisterResponse>(Error.Validation("CareerId", "La carrera seleccionada no existe."));
+        // La carrera es opcional según el rol, así que solo se verifica si vino.
+        if (request.CareerId is not null && request.CareerId != Guid.Empty
+            && await careerRepository.GetByIdAsync(request.CareerId.Value, ct) is null)
+            return Result.Failure<(Domain.Entities.User User, Role Role)>(
+                Error.Validation("CareerId", "La carrera seleccionada no existe."));
 
         var role = await roleRepository.GetByCodeAsync(request.RequestedRole, ct);
-        if(role is null)
-            return Result.Failure<RegisterResponse>(RoleErrors.NotFound);
+        if (role is null)
+            return Result.Failure<(Domain.Entities.User User, Role Role)>(RoleErrors.NotFound);
 
         var passwordHash = passwordHasher.Hash(request.Password);
 
-        var userResult = Domain.Entities.User.Create(request.Name,emailResult.Value,passwordHash,request.Phone,request.IdentificationNumber,role.Id,request.CareerId);
-        
+        var userResult = Domain.Entities.User.Create(
+            request.Name, emailResult.Value, passwordHash, request.Phone,
+            request.IdentificationNumber, role.Id, request.CareerId);
         if (userResult.IsFailure)
-            return Result.Failure<RegisterResponse>(userResult.Error);
+            return Result.Failure<(Domain.Entities.User User, Role Role)>(userResult.Error);
 
-        var user = userResult.Value;
-        userRepository.Add(user);
+        userRepository.Add(userResult.Value);
         await unitOfWork.SaveChangesAsync(ct);
 
+        return Result.Success((userResult.Value, role));
+    }
+
+    // Registro público: delega en CreateUserAsync y además genera los tokens.
+    public async Task<Result<RegisterResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct)
+    {
+        var created = await CreateUserAsync(request, isAdminCreation: false, ct);
+        if (created.IsFailure)
+            return Result.Failure<RegisterResponse>(created.Error);
+
+        var (user, role) = created.Value;
         var accessToken = tokenService.GenerateAccessToken(user, role);
         var refreshToken = tokenService.GenerateRefreshToken();
 
         return new RegisterResponse(user.Id, accessToken, refreshToken);
     }
 
+    // Creación por Admin. No genera tokens (el Admin no se loguea como el
+    // usuario nuevo), solo devuelve el id.
+    public async Task<Result<Guid>> CreateByAdminAsync(RegisterRequest request, CancellationToken ct)
+    {
+        var created = await CreateUserAsync(request, isAdminCreation: true, ct);
+        return created.IsFailure
+            ? Result.Failure<Guid>(created.Error)
+            : Result.Success(created.Value.User.Id);
+    }
+
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken ct)
     {
-        // var emailResult = Email.Create(request.Email);
         var emailResult = EmailValueObject.Create(request.Email);
         if (emailResult.IsFailure)
             return Result.Failure<LoginResponse>(UserErrors.InvalidEmail);
 
-        var user =  await userRepository.GetByEmailAsync(emailResult.Value, ct); // ya incluye Role (Include agregado en UserRepository)
+        var user = await userRepository.GetByEmailAsync(emailResult.Value, ct); // ya incluye Role
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
-            return Result.Failure<LoginResponse>(Error.Validation("Credentials", "Correo o contraseña incorrectos."));
+            return Result.Failure<LoginResponse>(
+                Error.Validation("Credentials", "Correo o contraseña incorrectos."));
+
+        // Tuyo: se revisa DESPUÉS de verificar la contraseña, para no revelar
+        // si una cuenta existe a quien no conoce la clave.
+        if (!user.IsActive)
+            return Result.Failure<LoginResponse>(
+                Error.Validation("Account", "Tu cuenta está desactivada. Contacta al administrador."));
 
         var role = await roleRepository.GetByIdAsync(user.RoleId, ct);
         if (role is null)

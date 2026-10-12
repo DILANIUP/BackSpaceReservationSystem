@@ -14,7 +14,8 @@ public class User : AuditableEntity
     public Guid RoleId { get; private set; }
     public Role Role { get; private set; } = null!; //* es nullable porque no todos los roles necesariamente tienen asignacion
     public Guid? CareerId { get; private set; }
-    public Career? Career { get; private set; }  
+    public Career? Career { get; private set; }
+    public bool IsActive { get; private set; } = true;
     public ICollection<Reservation> Reservations { get; private set; } = new List<Reservation>();
     public ICollection<ReservationHistory> ReservationHistories { get; set; } = new List<ReservationHistory>();
 
@@ -79,7 +80,14 @@ public class User : AuditableEntity
         CareerId = careerId;
         return Result.Success();
     }
+    public Result ChangeRole(Guid roleId)
+    {
+        if (roleId == Guid.Empty)
+            return Result.Failure(UserErrors.InvalidRole);
 
+        RoleId = roleId;
+        return Result.Success();
+    }
     public Result ChangePassword(string newPasswordHash)
     {
         if(string.IsNullOrWhiteSpace(newPasswordHash))
@@ -88,6 +96,9 @@ public class User : AuditableEntity
         PasswordHash = newPasswordHash;
         return Result.Success();
     }
-    
+    public void Activate() => IsActive = true;
+    public void Deactivate() => IsActive = false;
+    // NUEVO: Vicerrector, Bienes y Admin no necesitan carrera
+    public void ClearCareer() => CareerId = null;
 
 } 

@@ -12,6 +12,7 @@ public interface IUserRepository
     Task<bool> ExistsByIdentificationNumberAsync(string identificationNumber, CancellationToken ct = default);
     Task<List<User>> SearchAsync(RoleCode? role, Guid? careerId, CancellationToken ct = default);
     Task<List<User>> GetByRoleAsync(RoleCode role, CancellationToken ct = default);
+    Task<List<User>> SearchForAdminAsync(RoleCode? role, Guid? careerId, string? search, CancellationToken ct = default);
     void Add(User user);
     void Update(User user);
 }

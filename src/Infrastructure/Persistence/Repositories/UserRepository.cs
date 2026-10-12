@@ -55,6 +55,30 @@ public class UserRepository : IUserRepository
             .Where(u => u.Role!.Code == role)
             .ToListAsync(ct);
     }
+    public async Task<List<User>> SearchForAdminAsync(RoleCode? role, Guid? careerId, string? search, CancellationToken ct = default)
+    {
+        var query = _context.Users
+            .Include(u => u.Role)
+            .Include(u => u.Career)
+            .AsQueryable();
+
+        if (role is not null)
+            query = query.Where(u => u.Role.Code == role);
+
+        if (careerId is not null)
+            query = query.Where(u => u.CareerId == careerId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search.Trim()}%";
+            // ILike = LIKE sin distinguir mayúsculas (específico de PostgreSQL).
+            query = query.Where(u =>
+                EF.Functions.ILike(u.Name, pattern) ||
+                EF.Functions.ILike(u.Email.Value, pattern));
+        }
+
+        return await query.OrderBy(u => u.Name).ToListAsync(ct);
+    }
     public void Add(User user) => _context.Users.Add(user); // Marca el usuario como nuevo , pendiente de guardar en memoria
 
     public void Update(User user) => _context.Users.Update(user);
