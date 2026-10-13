@@ -12,7 +12,7 @@ using SpaceReservationSystem.Infrastructure;
 //    Console.WriteLine($"QuestPDF no pudo inicializarse: {ex.Message}");
 //}
 
-//QuestPDF.Settings.License = LicenseType.Community; - ESTO ESTABA ANTES
+QuestPDF.Settings.License = LicenseType.Community; 
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration); // Agrega la infraestructura y la base de datos al contenedor de servicios
