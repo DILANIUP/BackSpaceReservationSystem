@@ -332,7 +332,11 @@ public class ReservationService(
                 .Select(h => new ReservationHistoryEntryResponse(
                     h.NewStatus.ToString(), h.Justification, h.ChangeDate,
                     h.ChangedBy?.Name ?? "—", h.ChangedBy?.Role?.Name))
-                .ToList()
+                .ToList(),
+
+            reservation.Voucher?.GenerationDate
+            
+
         );
     }
 

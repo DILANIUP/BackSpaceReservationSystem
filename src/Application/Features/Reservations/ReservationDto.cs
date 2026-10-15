@@ -47,7 +47,8 @@ public sealed record ReservationDetailResponse (
     string? SpaceName,
     string? CareerName,
     List<ReservationResourceItemResponse> Resources,
-    List<ReservationHistoryEntryResponse> History
+    List<ReservationHistoryEntryResponse> History,
+    DateTime? VoucherGeneratedAt = null
 );
 
 public sealed record ReservationResourceItemResponse(

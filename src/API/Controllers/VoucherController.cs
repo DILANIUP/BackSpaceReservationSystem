@@ -24,7 +24,7 @@ public class VoucherController(VoucherService voucherService) : ControllerBase
         var result = await voucherService.GetPdfForUserAsync(reservationId, userId, userRole, ct);
 
         return result.IsSuccess
-            ? File(result.Value.Bytes, "application.pdf", result.Value.FileName)
+            ? File(result.Value.Bytes, "application/pdf", result.Value.FileName)
             : NotFound(new { result.Error.Code, result.Error.Description });
     }
 }
