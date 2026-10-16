@@ -20,15 +20,15 @@ public class AuthService(
     ITokenService tokenService
 )
 {
-    // Dominio de tu compañera. Debe coincidir con el que arma el frontend
+    // Dominio de tu compaÃ±era. Debe coincidir con el que arma el frontend
     // (register.component.ts y el modal de user-list.ts).
     private const string InstitutionalDomain = "@unibe.edu.ec";
     private static readonly Regex NameRegex = new(@"^[\p{L}\s'.-]+$");
     private static readonly Regex PhoneRegex = new(@"^\d{10}$");
 
-    // Validaciones estrictas (de tu compañera) aplicadas a AMBOS caminos:
-    // registro público y creación por Admin. Así un Admin no puede crear
-    // usuarios con datos que el registro público rechazaría.
+    // Validaciones estrictas (de tu compaï¿½era) aplicadas a AMBOS caminos:
+    // registro pï¿½blico y creaciï¿½n por Admin. Asï¿½ un Admin no puede crear
+    // usuarios con datos que el registro pï¿½blico rechazarï¿½a.
     private static (string Field, string Message)? ValidateRegister(RegisterRequest r, bool isAdminCreation = false)
     {
         var name = r.Name?.Trim() ?? "";
@@ -41,16 +41,16 @@ public class AuthService(
             return ("Email", $"Usa tu correo institucional ({InstitutionalDomain}).");
 
         if (!PhoneRegex.IsMatch(r.Phone ?? ""))
-            return ("Phone", "El teléfono debe tener exactamente 10 dígitos.");
+            return ("Phone", "El telï¿½fono debe tener exactamente 10 dï¿½gitos.");
 
         if (!Regex.IsMatch(r.IdentificationNumber ?? "", @"^\d{10}$"))
-            return ("IdentificationNumber", "La cédula debe tener exactamente 10 dígitos.");
+            return ("IdentificationNumber", "La cï¿½dula debe tener exactamente 10 dï¿½gitos.");
 
         var pwd = r.Password ?? "";
         if (pwd.Length < 8 || !pwd.Any(char.IsLetter) || !pwd.Any(char.IsDigit))
-            return ("Password", "La contraseña debe tener 8 caracteres, con letras y números.");
+            return ("Password", "La contraseÃ±a debe tener 8 caracteres, con letras y nï¿½meros.");
 
-        // Tuyo: solo el registro público se limita a Student/Teacher.
+        // Tuyo: solo el registro pÃºblico se limita a Student/Teacher.
         // El Admin puede crear cualquier rol.
         if (!isAdminCreation && r.RequestedRole != RoleCode.Student && r.RequestedRole != RoleCode.Teacher)
             return ("RequestedRole", "Solo puedes registrarte como Estudiante o Docente.");
@@ -64,8 +64,8 @@ public class AuthService(
         return null;
     }
 
-    // Lógica común de crear un usuario: la usan el registro público y la
-    // creación por Admin. Devuelve el usuario y su rol (el rol hace falta para el token).
+    // Lï¿½gica comï¿½n de crear un usuario: la usan el registro pï¿½blico y la
+    // creaciï¿½n por Admin. Devuelve el usuario y su rol (el rol hace falta para el token).
     private async Task<Result<(Domain.Entities.User User, Role Role)>> CreateUserAsync(
         RegisterRequest request, bool isAdminCreation, CancellationToken ct)
     {
@@ -81,12 +81,12 @@ public class AuthService(
         if (await userRepository.ExistsByEmailAsync(emailResult.Value, ct))
             return Result.Failure<(Domain.Entities.User User, Role Role)>(UserErrors.EmailAlreadyExists);
 
-        // De tu compañera: la cédula es única.
+        // De tu compaï¿½era: la cï¿½dula es ï¿½nica.
         if (await userRepository.ExistsByIdentificationNumberAsync(request.IdentificationNumber, ct))
             return Result.Failure<(Domain.Entities.User User, Role Role)>(
-                Error.Validation("IdentificationNumber", "La cédula ya está registrada."));
+                Error.Validation("IdentificationNumber", "La cï¿½dula ya estï¿½ registrada."));
 
-        // La carrera es opcional según el rol, así que solo se verifica si vino.
+        // La carrera es opcional segï¿½n el rol, asï¿½ que solo se verifica si vino.
         if (request.CareerId is not null && request.CareerId != Guid.Empty
             && await careerRepository.GetByIdAsync(request.CareerId.Value, ct) is null)
             return Result.Failure<(Domain.Entities.User User, Role Role)>(
@@ -110,7 +110,7 @@ public class AuthService(
         return Result.Success((userResult.Value, role));
     }
 
-    // Registro público: delega en CreateUserAsync y además genera los tokens.
+    // Registro pï¿½blico: delega en CreateUserAsync y ademï¿½s genera los tokens.
     public async Task<Result<RegisterResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var created = await CreateUserAsync(request, isAdminCreation: false, ct);
@@ -124,7 +124,7 @@ public class AuthService(
         return new RegisterResponse(user.Id, accessToken, refreshToken);
     }
 
-    // Creación por Admin. No genera tokens (el Admin no se loguea como el
+    // Creaciï¿½n por Admin. No genera tokens (el Admin no se loguea como el
     // usuario nuevo), solo devuelve el id.
     public async Task<Result<Guid>> CreateByAdminAsync(RegisterRequest request, CancellationToken ct)
     {
@@ -143,13 +143,13 @@ public class AuthService(
         var user = await userRepository.GetByEmailAsync(emailResult.Value, ct); // ya incluye Role
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
             return Result.Failure<LoginResponse>(
-                Error.Validation("Credentials", "Correo o contraseña incorrectos."));
+                Error.Validation("Credentials", "Correo o contraseï¿½a incorrectos."));
 
-        // Tuyo: se revisa DESPUÉS de verificar la contraseña, para no revelar
+        // Tuyo: se revisa DESPUï¿½S de verificar la contraseï¿½a, para no revelar
         // si una cuenta existe a quien no conoce la clave.
         if (!user.IsActive)
             return Result.Failure<LoginResponse>(
-                Error.Validation("Account", "Tu cuenta está desactivada. Contacta al administrador."));
+                Error.Validation("Account", "Tu cuenta estï¿½ desactivada. Contacta al administrador."));
 
         var role = await roleRepository.GetByIdAsync(user.RoleId, ct);
         if (role is null)
