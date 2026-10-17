@@ -1,9 +1,11 @@
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using SpaceReservationSystem.Domain.Enums;
 
 namespace SpaceReservationSystem.Application.Features.Auth;
 
 public sealed record RegisterRequest(
     string Name,
+    string LastName,
     string Email,
     string Password,
     string Phone,

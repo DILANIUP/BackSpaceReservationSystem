@@ -123,7 +123,7 @@ public class UserService(
         if (role is null)
             return Result.Failure<UserSummaryResponse>(RoleErrors.NotFound);
 
-        var profileResult = user.UpdateProfile(request.Name, request.Phone);
+        var profileResult = user.UpdateProfile(request.Name, request.LastName, request.Phone);
         if (profileResult.IsFailure)
             return Result.Failure<UserSummaryResponse>(profileResult.Error);
 

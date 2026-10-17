@@ -16,6 +16,7 @@ public sealed record UserSummaryResponse(
 
 public sealed record EditUserRequest(
     string Name,
+    string LastName,
     string Phone,
     RoleCode Role,
     Guid? CareerId

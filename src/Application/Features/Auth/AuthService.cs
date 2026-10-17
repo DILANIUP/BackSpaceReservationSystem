@@ -33,33 +33,39 @@ public class AuthService(
     {
         var name = r.Name?.Trim() ?? "";
         if (name.Length < 3 || name.Length > 150 || !NameRegex.IsMatch(name))
-            return ("Name", "El nombre debe tener entre 3 y 150 letras.");
+            return ("Name", "Ingresa nombres válidos (de 3 a 150 caracteres).");
+
+        var lastName = r.LastName?.Trim() ?? "";
+        if (lastName.Length < 3 || lastName.Length > 150 || !NameRegex.IsMatch(lastName))
+            return ("LastName", "Ingresa apellidos válidos (de 3 a 150 caracteres).");
 
         var email = r.Email?.Trim() ?? "";
         if (email.Length <= InstitutionalDomain.Length ||
             !email.EndsWith(InstitutionalDomain, StringComparison.OrdinalIgnoreCase))
-            return ("Email", $"Usa tu correo institucional ({InstitutionalDomain}).");
+            return ("Email", $"Ingresa tu correo institucional ({InstitutionalDomain}).");
 
         if (!PhoneRegex.IsMatch(r.Phone ?? ""))
-            return ("Phone", "El tel�fono debe tener exactamente 10 d�gitos.");
+            return ("Phone", "Ingresa un teléfono de 10 dígitos.");
 
         if (!Regex.IsMatch(r.IdentificationNumber ?? "", @"^\d{10}$"))
-            return ("IdentificationNumber", "La c�dula debe tener exactamente 10 d�gitos.");
+            return ("IdentificationNumber", "Ingresa una cédula de 10 dígitos.");
 
         var pwd = r.Password ?? "";
         if (pwd.Length < 8 || !pwd.Any(char.IsLetter) || !pwd.Any(char.IsDigit))
-            return ("Password", "La contraseña debe tener 8 caracteres, con letras y n�meros.");
+            return ("Password", "La contraseña debe tener al menos 8 caracteres, una letra y un número.");
 
         // Tuyo: solo el registro público se limita a Student/Teacher.
         // El Admin puede crear cualquier rol.
-        if (!isAdminCreation && r.RequestedRole != RoleCode.Student && r.RequestedRole != RoleCode.Teacher)
-            return ("RequestedRole", "Solo puedes registrarte como Estudiante o Docente.");
+        if (!isAdminCreation &&
+            r.RequestedRole != RoleCode.Student &&
+            r.RequestedRole != RoleCode.Teacher)
+            return ("RequestedRole", "Selecciona Estudiante o Docente.");
 
-        // Tuyo: la carrera solo es obligatoria para Student, Teacher y Coordinator.
-        // Vicerrector, Bienes y Admin pueden no tener carrera.
-        var careerRequired = r.RequestedRole is RoleCode.Student or RoleCode.Teacher or RoleCode.Coordinator;
+        var careerRequired = r.RequestedRole is
+            RoleCode.Student or RoleCode.Teacher or RoleCode.Coordinator;
+
         if (careerRequired && (r.CareerId is null || r.CareerId == Guid.Empty))
-            return ("CareerId", "Debes seleccionar una carrera.");
+            return ("CareerId", "Selecciona una carrera.");
 
         return null;
     }
@@ -81,10 +87,10 @@ public class AuthService(
         if (await userRepository.ExistsByEmailAsync(emailResult.Value, ct))
             return Result.Failure<(Domain.Entities.User User, Role Role)>(UserErrors.EmailAlreadyExists);
 
-        // De tu compa�era: la c�dula es �nica.
+        // La cédula debe ser única.
         if (await userRepository.ExistsByIdentificationNumberAsync(request.IdentificationNumber, ct))
             return Result.Failure<(Domain.Entities.User User, Role Role)>(
-                Error.Validation("IdentificationNumber", "La c�dula ya est� registrada."));
+                Error.Validation("IdentificationNumber", "Esta cédula ya está registrada."));
 
         // La carrera es opcional seg�n el rol, as� que solo se verifica si vino.
         if (request.CareerId is not null && request.CareerId != Guid.Empty
@@ -99,7 +105,7 @@ public class AuthService(
         var passwordHash = passwordHasher.Hash(request.Password);
 
         var userResult = Domain.Entities.User.Create(
-            request.Name, emailResult.Value, passwordHash, request.Phone,
+            request.Name, request.LastName, emailResult.Value, passwordHash, request.Phone,
             request.IdentificationNumber, role.Id, request.CareerId);
         if (userResult.IsFailure)
             return Result.Failure<(Domain.Entities.User User, Role Role)>(userResult.Error);
@@ -143,13 +149,13 @@ public class AuthService(
         var user = await userRepository.GetByEmailAsync(emailResult.Value, ct); // ya incluye Role
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
             return Result.Failure<LoginResponse>(
-                Error.Validation("Credentials", "Correo o contrase�a incorrectos."));
+                Error.Validation("Credentials", "Correo o contraseña incorrectos."));
 
         // Tuyo: se revisa DESPU�S de verificar la contrase�a, para no revelar
         // si una cuenta existe a quien no conoce la clave.
         if (!user.IsActive)
             return Result.Failure<LoginResponse>(
-                Error.Validation("Account", "Tu cuenta est� desactivada. Contacta al administrador."));
+                Error.Validation("Account", "Tu cuenta está desactivada. Contacta al administrador."));
 
         var role = await roleRepository.GetByIdAsync(user.RoleId, ct);
         if (role is null)

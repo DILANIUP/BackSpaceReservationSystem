@@ -7,6 +7,8 @@ namespace SpaceReservationSystem.Domain.Entities;
 public class User : AuditableEntity
 {
     public string Name { get; private set; } = null!;
+    //NC 16-10-2026
+    public string LastName { get; private set; } = null!;
     public Email Email { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
     public string Phone { get; private set; } = null!;
@@ -19,9 +21,10 @@ public class User : AuditableEntity
     public ICollection<Reservation> Reservations { get; private set; } = new List<Reservation>();
     public ICollection<ReservationHistory> ReservationHistories { get; set; } = new List<ReservationHistory>();
 
-    private User(Guid id, string name, Email email, string passwordHash, string phone, string? identificationNumber, Guid roleId, Guid? careerId) : base(id)
+    private User(Guid id, string name, string lastName, Email email, string passwordHash, string phone, string? identificationNumber, Guid roleId, Guid? careerId) : base(id)
     {
         Name = name;
+        LastName = lastName;
         Email = email;
         PasswordHash = passwordHash;
         Phone = phone;
@@ -35,6 +38,7 @@ public class User : AuditableEntity
 
     public static Result<User> Create(
         string name,
+        string lastName,
         Email email,
         string passwordHash,
         string phone,
@@ -43,32 +47,41 @@ public class User : AuditableEntity
         Guid? careerId = null
     )
     {
-        if(string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(name))
             return Result.Failure<User>(UserErrors.InvalidName);
+        //NC 16-10-2026
+        if (string.IsNullOrWhiteSpace(lastName))
+            return Result.Failure<User>(Error.Validation("LastName", "Los apellidos son obligatorios."));
 
-        if(string.IsNullOrWhiteSpace(email.Value))
+        if (string.IsNullOrWhiteSpace(email.Value))
             return Result.Failure<User>(UserErrors.InvalidEmail);
 
-        if(string.IsNullOrWhiteSpace(phone))
+        if (string.IsNullOrWhiteSpace(phone))
             return Result.Failure<User>(UserErrors.InvalidPhone);
 
-        if(roleId == Guid.Empty)
+        if (roleId == Guid.Empty)
             return Result.Failure<User>(UserErrors.InvalidRole);
-                
-        return new User(Guid.NewGuid(), name.Trim(), email,passwordHash, phone.Trim(), identificationNumber.Trim(), roleId, careerId);
+
+        return new User(Guid.NewGuid(), name.Trim(), lastName.Trim(), email,passwordHash, phone.Trim(), identificationNumber.Trim(), roleId, careerId);
 
     }
 
-    public Result UpdateProfile(string name, string phone)
+    public Result UpdateProfile(string name, string lastName, string phone)
     {
         if(string.IsNullOrWhiteSpace(name))
             return Result.Failure(UserErrors.InvalidName);
 
-        if(string.IsNullOrWhiteSpace(phone))
+        if (string.IsNullOrWhiteSpace(lastName))
+            return Result.Failure(
+                Error.Validation("LastName", "Los apellidos son obligatorios."));
+
+        if (string.IsNullOrWhiteSpace(phone))
             return Result.Failure(UserErrors.InvalidPhone);
 
         Name = name.Trim();
+        LastName = lastName.Trim();
         Phone = phone.Trim();
+
         return Result.Success();
     }
 

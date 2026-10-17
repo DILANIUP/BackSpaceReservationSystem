@@ -9,6 +9,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.Property(u => u.Name).IsRequired().HasMaxLength(150);
+        // NC 16-10-2026
+        builder.Property(u => u.LastName).IsRequired().HasMaxLength(150);
         builder.Property(u => u.PasswordHash).IsRequired();
         builder.Property(u => u.Phone).HasMaxLength(20);
         builder.Property(u => u.IdentificationNumber).HasMaxLength(10);
