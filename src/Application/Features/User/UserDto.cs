@@ -18,6 +18,7 @@ public sealed record EditUserRequest(
     string Name,
     string LastName,
     string Phone,
+    string? IdentificationNumber,
     RoleCode Role,
     Guid? CareerId
 );
@@ -25,8 +26,10 @@ public sealed record EditUserRequest(
 public sealed record UserListItemResponse(
     Guid Id,
     string Name,
+    string LastName,
     string Email,
     string Phone,
+    string? IdentificationNumber,
     string Role,
     Guid? CareerId,
     string? CareerName,

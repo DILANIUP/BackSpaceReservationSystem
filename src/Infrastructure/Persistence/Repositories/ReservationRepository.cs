@@ -69,7 +69,7 @@ public class ReservationRepository : IReservationRepository
             .ToListAsync(ct);
     }
 
-    // Busca reservas pr�ximas de un recurso
+    // Busca reservas próximas de un recurso
     public async Task<IEnumerable<Reservation>> GetUpcomingByResourceAsync(Guid resourceId, DateTime fromDate, CancellationToken ct = default)
         => await _context.Reservations
             .Where(r => r.ReservationResources.Any(rr => rr.ResourceId == resourceId)

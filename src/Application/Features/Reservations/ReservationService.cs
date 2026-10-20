@@ -158,7 +158,7 @@ public class ReservationService(
                 Error.Validation("Reservation", "No puedes editar una reserva que no es tuya."));
 
         //var normalizedDate = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
-        var normalizedDate = DateTime.SpecifyKind(request.Date.Date, DateTimeKind.Unspecified);
+        var normalizedDate = DateTime.SpecifyKind(request.Date.Date, DateTimeKind.Utc);
         var editResult = reservation.Edit(normalizedDate, request.StartTime, request.EndTime, request.Reason, request.SpaceId);
         if (editResult.IsFailure)
             return Result.Failure<ReservationResponse>(editResult.Error);
@@ -311,11 +311,15 @@ public class ReservationService(
     // ReservationDetailResponse, con Resources e History mapeados —
     // reservation.ReservationResources/ReservationHistories ya vienen cargados
     // porque GetByIdWithDetailsAsync los incluye (ver el repo).
-    public async Task<Result<ReservationDetailResponse>> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<Result<ReservationDetailResponse>> GetByIdAsync(Guid id, Guid actingUserId, RoleCode actingRole, CancellationToken ct)
     {
         var reservation = await reservationRepository.GetByIdWithDetailsAsync(id, ct);
         if (reservation is null)
             return Result.Failure<ReservationDetailResponse>(Error.NotFound("Reservation", id.ToString()));
+
+        if (!await CanViewAsync(reservation, actingUserId, actingRole, ct))
+            return Result.Failure<ReservationDetailResponse>(
+                Error.Forbidden("No tienes permiso para ver esta reserva."));
 
         return new ReservationDetailResponse(
             reservation.Id, reservation.Slot.Date, reservation.Slot.StartTime, reservation.Slot.EndTime,
@@ -335,9 +339,34 @@ public class ReservationService(
                 .ToList(),
 
             reservation.Voucher?.GenerationDate
-            
+
 
         );
+    }
+    // NUEVO: quién puede ver el detalle de una reserva.
+    // - Dueño: siempre (cualquier rol ve sus propias reservas).
+    // - Vicerrector, Bienes y Admin: todas, porque autorizan a nivel institucional.
+    // - Coordinator: solo las de su carrera. La carrera se lee de la BD porque el
+    //   JWT no trae careerId (igual que en GetByCareerAsync).
+    // - Student/Teacher: solo las propias (cae en el return false).
+    private async Task<bool> CanViewAsync(Reservation reservation, Guid actingUserId, RoleCode actingRole, CancellationToken ct)
+    {
+        if (reservation.UserId == actingUserId)
+            return true;
+
+        if (actingRole is RoleCode.Admin or RoleCode.Vicerrector or RoleCode.Bienes)
+            return true;
+
+        if (actingRole == RoleCode.Coordinator)
+        {
+            var coordinator = await userRepository.GetByIdAsync(actingUserId, ct);
+            // Si el coordinador no tiene carrera asignada, no puede ver nada ajeno:
+            // sin este chequeo, null == null daría true con dueños sin carrera.
+            return coordinator?.CareerId is not null
+                && reservation.User?.CareerId == coordinator.CareerId;
+        }
+
+        return false;
     }
 
 

@@ -49,10 +49,16 @@ public class ReservationController(ReservationService reservationService) : Cont
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var result = await reservationService.GetByIdAsync(id, ct);
-        return result.IsSuccess
-            ? Ok(result.Value)
-            : NotFound(new { result.Error.Code, result.Error.Description });
+        var result = await reservationService.GetByIdAsync(id, GetUserId(), GetUserRole(), ct);
+        if (result.IsSuccess)
+            return Ok(result.Value);
+
+        var body = new { result.Error.Code, result.Error.Description };
+
+        // 403 = existe pero no tienes permiso. 404 = no existe.
+        return result.Error.Code == "Forbidden"
+            ? StatusCode(403, body)
+            : NotFound(body);
     }
 
     [HttpGet("career")]

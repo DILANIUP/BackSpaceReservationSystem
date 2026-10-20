@@ -27,8 +27,8 @@ public class VoucherService(
         }
 
         var reservation = await reservationRepository.GetByIdWithDetailsAsync(request.ReservationId, ct);
-            if(reservation is null)
-                return Result.Failure<VoucherResponse>(Error.NotFound("Reservation", request.ReservationId.ToString()));
+        if (reservation is null)
+            return Result.Failure<VoucherResponse>(Error.NotFound("Reservation", request.ReservationId.ToString()));
 
         if (reservation.CurrentStatus != ReservationStatus.Approved)
             return Result.Failure<VoucherResponse>(
@@ -42,7 +42,7 @@ public class VoucherService(
         BuildPdf(reservation, fullPath);
 
         var voucherResult = Voucher.Create(fullPath, reservation.Id);
-        if(voucherResult.IsFailure)
+        if (voucherResult.IsFailure)
             return Result.Failure<VoucherResponse>(voucherResult.Error);
 
         voucherRepository.Add(voucherResult.Value);
@@ -59,14 +59,14 @@ public class VoucherService(
             return Result.Failure<VoucherFileResult>(Error.NotFound("Reservation", reservationId.ToString()));
 
         var isStaff = userRole is RoleCode.Admin or RoleCode.Bienes or RoleCode.Coordinator or RoleCode.Vicerrector;
-        if(!isStaff && reservation.UserId != userId)
+        if (!isStaff && reservation.UserId != userId)
             return Result.Failure<VoucherFileResult>(Error.Conflict("Voucher", "No tienes permiso para descargar el voucher de esta reserva."));
 
         var voucher = await voucherRepository.GetByReservationIdAsync(reservationId, ct);
         if (voucher is null)
             return Result.Failure<VoucherFileResult>(Error.NotFound("Voucher", reservationId.ToString()));
 
-        if(!File.Exists(voucher.PdfFilePath))
+        if (!File.Exists(voucher.PdfFilePath))
             return Result.Failure<VoucherFileResult>(
                 Error.NotFound("VoucherFile", voucher.PdfFilePath));
 
@@ -75,6 +75,17 @@ public class VoucherService(
     }
     private static void BuildPdf(Reservation reservation, string path)
     {
+        // Código corto y legible: "RSV-" + primeros 8 caracteres del Id en mayúsculas.
+        // Es el mismo formato que usa el ticket del front. "N" quita los guiones;
+        // los primeros 8 caracteres coinciden con los del formato normal del Guid.
+        var code = $"RSV-{reservation.Id.ToString("N")[..8].ToUpperInvariant()}";
+
+        // EXTRA: User.Name solo trae el nombre; el apellido está en LastName.
+        var requester = $"{reservation.User.Name} {reservation.User.LastName}".Trim();
+
+        // La hora de generación se muestra en hora de Ecuador, no en UTC.
+        var generatedAt = ToEcuadorTime(DateTime.UtcNow);
+
         Document.Create(container =>
         {
             container.Page(page =>
@@ -88,21 +99,63 @@ public class VoucherService(
                 page.Content().Column(col =>
                 {
                     col.Spacing(8);
-                    col.Item().Text($"N° Reserva: {reservation.Id}");
-                    col.Item().Text($"Solicitante: {reservation.User.Name}");
-                    col.Item().Text($"Espacio: {reservation.Space?.Name ?? "N/A"}");
+                    col.Item().Text($"N° Reserva: {code}");
+                    col.Item().Text($"Solicitante: {requester}");
+
+                    // CAMBIO: antes salía "Espacio: N/A" en reservas de solo recursos.
+                    // Ahora la línea solo aparece si hay un espacio asignado.
+                    if (reservation.Space is not null)
+                        col.Item().Text($"Espacio: {reservation.Space.Name}");
+
+                    // EXTRA: en una reserva de solo recursos esto es lo único que dice
+                    // qué se reservó, así que se lista con su cantidad.
+                    if (reservation.ReservationResources.Count > 0)
+                    {
+                        col.Item().Text("Recursos:");
+                        foreach (var rr in reservation.ReservationResources)
+                            col.Item().Text($"  - {rr.Resource?.Name ?? "-"} x {rr.RequestedQuantity}");
+                    }
+
+                    // La fecha NO se convierte a hora local: es un día de calendario
+                    // (medianoche UTC). Convertirla mostraría el día anterior.
                     col.Item().Text($"Fecha: {reservation.Slot.Date:dd/MM/yyyy}");
                     col.Item().Text($"Horario: {reservation.Slot.StartTime:hh\\:mm} - {reservation.Slot.EndTime:hh\\:mm}");
                     col.Item().Text($"Motivo: {reservation.Reason}");
-                    col.Item().Text($"Estado: {reservation.CurrentStatus}");
+                    col.Item().Text($"Estado: {StatusToSpanish(reservation.CurrentStatus)}");
                 });
 
                 page.Footer().AlignCenter().Text(t =>
                 {
                     t.Span("Generado el ").FontSize(9);
-                    t.Span(DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm")).FontSize(9);
+                    t.Span(generatedAt.ToString("dd/MM/yyyy HH:mm")).FontSize(9);
                 });
             });
         }).GeneratePdf(path);
+    }
+
+    private static string StatusToSpanish(ReservationStatus status) => status switch
+    {
+        ReservationStatus.Draft => "Borrador",
+        ReservationStatus.PendingCoordinator => "Pendiente de Coordinador",
+        ReservationStatus.PendingVicerrector => "Pendiente de Vicerrector",
+        ReservationStatus.PendingAssets => "Pendiente de Bienes",
+        ReservationStatus.Approved => "Aprobada",
+        ReservationStatus.Rejected => "Rechazada",
+        ReservationStatus.Cancelled => "Cancelada",
+        _ => status.ToString()
+    };
+
+    // convierte un instante UTC a hora de Ecuador 
+    private static DateTime ToEcuadorTime(DateTime utc)
+    {
+        try
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Guayaquil");
+            return TimeZoneInfo.ConvertTimeFromUtc(utc, tz);
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return utc.ToLocalTime();
+        }
     }
 }

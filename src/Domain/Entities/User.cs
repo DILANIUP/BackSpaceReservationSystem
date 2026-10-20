@@ -33,7 +33,7 @@ public class User : AuditableEntity
         CareerId = careerId;
     }
 
-    private User (){ }
+    private User() { }
 
 
     public static Result<User> Create(
@@ -62,13 +62,13 @@ public class User : AuditableEntity
         if (roleId == Guid.Empty)
             return Result.Failure<User>(UserErrors.InvalidRole);
 
-        return new User(Guid.NewGuid(), name.Trim(), lastName.Trim(), email,passwordHash, phone.Trim(), identificationNumber.Trim(), roleId, careerId);
+        return new User(Guid.NewGuid(), name.Trim(), lastName.Trim(), email, passwordHash, phone.Trim(), identificationNumber.Trim(), roleId, careerId);
 
     }
 
     public Result UpdateProfile(string name, string lastName, string phone)
     {
-        if(string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(name))
             return Result.Failure(UserErrors.InvalidName);
 
         if (string.IsNullOrWhiteSpace(lastName))
@@ -84,10 +84,19 @@ public class User : AuditableEntity
 
         return Result.Success();
     }
+    public Result ChangeIdentificationNumber(string identificationNumber)
+    {
+        if (string.IsNullOrWhiteSpace(identificationNumber))
+            return Result.Failure(
+                Error.Validation("IdentificationNumber", "La cédula es obligatoria."));
+
+        IdentificationNumber = identificationNumber.Trim();
+        return Result.Success();
+    }
 
     public Result AssignCareer(Guid careerId)
     {
-        if(careerId == Guid.Empty)
+        if (careerId == Guid.Empty)
             return Result.Failure(UserErrors.InvalidCareer);
 
         CareerId = careerId;
@@ -103,7 +112,7 @@ public class User : AuditableEntity
     }
     public Result ChangePassword(string newPasswordHash)
     {
-        if(string.IsNullOrWhiteSpace(newPasswordHash))
+        if (string.IsNullOrWhiteSpace(newPasswordHash))
             return Result.Failure(UserErrors.InvalidPassword);
 
         PasswordHash = newPasswordHash;
@@ -114,4 +123,4 @@ public class User : AuditableEntity
     // NUEVO: Vicerrector, Bienes y Admin no necesitan carrera
     public void ClearCareer() => CareerId = null;
 
-} 
+}

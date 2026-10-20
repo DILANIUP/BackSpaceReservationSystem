@@ -26,9 +26,9 @@ public class AuthService(
     private static readonly Regex NameRegex = new(@"^[\p{L}\s'.-]+$");
     private static readonly Regex PhoneRegex = new(@"^\d{10}$");
 
-    // Validaciones estrictas (de tu compa�era) aplicadas a AMBOS caminos:
-    // registro p�blico y creaci�n por Admin. As� un Admin no puede crear
-    // usuarios con datos que el registro p�blico rechazar�a.
+    // Validaciones estrictas (de tu compañera) aplicadas a AMBOS caminos:
+    // registro público y creación por Admin. Así un Admin no puede crear
+    // usuarios con datos que el registro público rechazará.
     private static (string Field, string Message)? ValidateRegister(RegisterRequest r, bool isAdminCreation = false)
     {
         var name = r.Name?.Trim() ?? "";
@@ -70,8 +70,8 @@ public class AuthService(
         return null;
     }
 
-    // L�gica com�n de crear un usuario: la usan el registro p�blico y la
-    // creaci�n por Admin. Devuelve el usuario y su rol (el rol hace falta para el token).
+    // Lógica común de crear un usuario: la usan el registro público y la
+    // creación por Admin. Devuelve el usuario y su rol (el rol hace falta para el token).
     private async Task<Result<(Domain.Entities.User User, Role Role)>> CreateUserAsync(
         RegisterRequest request, bool isAdminCreation, CancellationToken ct)
     {
@@ -92,7 +92,7 @@ public class AuthService(
             return Result.Failure<(Domain.Entities.User User, Role Role)>(
                 Error.Validation("IdentificationNumber", "Esta cédula ya está registrada."));
 
-        // La carrera es opcional seg�n el rol, as� que solo se verifica si vino.
+        // La carrera es opcional según el rol, así que solo se verifica si vino.
         if (request.CareerId is not null && request.CareerId != Guid.Empty
             && await careerRepository.GetByIdAsync(request.CareerId.Value, ct) is null)
             return Result.Failure<(Domain.Entities.User User, Role Role)>(
@@ -116,7 +116,7 @@ public class AuthService(
         return Result.Success((userResult.Value, role));
     }
 
-    // Registro p�blico: delega en CreateUserAsync y adem�s genera los tokens.
+    // Registro público: delega en CreateUserAsync y además genera los tokens.
     public async Task<Result<RegisterResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var created = await CreateUserAsync(request, isAdminCreation: false, ct);
@@ -130,7 +130,7 @@ public class AuthService(
         return new RegisterResponse(user.Id, accessToken, refreshToken);
     }
 
-    // Creaci�n por Admin. No genera tokens (el Admin no se loguea como el
+    // Creación por Admin. No genera tokens (el Admin no se loguea como el
     // usuario nuevo), solo devuelve el id.
     public async Task<Result<Guid>> CreateByAdminAsync(RegisterRequest request, CancellationToken ct)
     {
@@ -151,7 +151,7 @@ public class AuthService(
             return Result.Failure<LoginResponse>(
                 Error.Validation("Credentials", "Correo o contraseña incorrectos."));
 
-        // Tuyo: se revisa DESPU�S de verificar la contrase�a, para no revelar
+        // Tuyo: se revisa DESPUÉS de verificar la contraseña, para no revelar
         // si una cuenta existe a quien no conoce la clave.
         if (!user.IsActive)
             return Result.Failure<LoginResponse>(

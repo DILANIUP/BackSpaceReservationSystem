@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using SpaceReservationSystem.Application.Features.User;
 using SpaceReservationSystem.Domain.Enums;
 using SpaceReservationSystem.Domain.Errors;
@@ -13,6 +14,7 @@ public class UserService(
     IUnitOfWork unitOfWork
 )
 {
+    private static readonly Regex IdentificationRegex = new(@"^\d{10}$");
     public async Task<Result<UserSummaryResponse>> AssignCareerAsync(Guid userId, Guid careerId, CancellationToken ct)
     {
         var user = await userRepository.GetByIdAsync(userId, ct);
@@ -52,8 +54,10 @@ public class UserService(
             .Select(u => new UserListItemResponse(
                 u.Id,
                 u.Name,
+                u.LastName,
                 u.Email.Value,
                 u.Phone,
+                u.IdentificationNumber,
                 u.Role?.Name ?? string.Empty,
                 u.CareerId,
                 u.Career?.Name,
@@ -107,6 +111,16 @@ public class UserService(
             return Result.Failure<UserSummaryResponse>(
                 Error.Validation("Role", "No puedes quitarte tu propio rol de Administrador."));
 
+        var identification = request.IdentificationNumber?.Trim() ?? string.Empty;
+        if (!IdentificationRegex.IsMatch(identification))
+            return Result.Failure<UserSummaryResponse>(
+                Error.Validation("IdentificationNumber", "La cédula debe tener 10 dígitos."));
+
+        if (identification != user.IdentificationNumber
+                    && await userRepository.ExistsByIdentificationNumberAsync(identification, ct))
+            return Result.Failure<UserSummaryResponse>(
+                Error.Validation("IdentificationNumber", "Esta cédula ya está registrada."));
+
         // Carrera obligatoria para Student, Teacher y Coordinator; opcional para el resto.
         var careerRequired = request.Role is RoleCode.Student or RoleCode.Teacher or RoleCode.Coordinator;
         var hasCareer = request.CareerId is not null && request.CareerId != Guid.Empty;
@@ -126,6 +140,10 @@ public class UserService(
         var profileResult = user.UpdateProfile(request.Name, request.LastName, request.Phone);
         if (profileResult.IsFailure)
             return Result.Failure<UserSummaryResponse>(profileResult.Error);
+
+        var identificationResult = user.ChangeIdentificationNumber(identification);
+        if (identificationResult.IsFailure)
+            return Result.Failure<UserSummaryResponse>(identificationResult.Error);
 
         var roleResult = user.ChangeRole(role.Id);
         if (roleResult.IsFailure)

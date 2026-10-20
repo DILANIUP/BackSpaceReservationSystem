@@ -7,9 +7,9 @@ public interface IReservationRepository
     Task<Reservation?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Reservation?> GetByIdWithDetailsAsync(Guid id, CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetActiveBySpaceAndDateAsync(Guid spaceId, DateTime date, CancellationToken ct = default);
-    // Busca reservas pr�ximas de un recurso
+    // Busca reservas próximas de un recurso
     //Task<IEnumerable<Reservation>> GetUpcomingByResourceAsync(Guid resourceId, DateTime fromDate, CancellationToken ct = default);
-    // Busca reservas pr�ximas de un espacio
+    // Busca reservas próximas de un espacio
     //Task<IEnumerable<Reservation>> GetUpcomingBySpaceAsync( Guid spaceId, DateTime fromDate, CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetByCareerAsync(Guid careerId, CancellationToken ct = default);
