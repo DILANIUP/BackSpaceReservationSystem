@@ -18,7 +18,8 @@ public class ReservationService(
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IValidator<CreateReservationRequest> validator,
-    VoucherService voucherService
+    VoucherService voucherService,
+    ReservationAccessPolicy accessPolicy
 )
 {
     public async Task<Result<ReservationResponse>> CreateAsync(CreateReservationRequest request, Guid actingUserId, RoleCode actingRole, CancellationToken ct)
@@ -250,7 +251,10 @@ public class ReservationService(
     public async Task<IEnumerable<ReservationResponse>> GetMineAsync(Guid userId, CancellationToken ct)
     {
         var reservations = await reservationRepository.GetByUserIdAsync(userId, ct);
-        return reservations.Select(ToResponse);
+        return reservations.Select(r => ToResponse(r) with
+        {
+            CanDelete = r.CurrentStatus == ReservationStatus.Draft && r.ReservationHistories.Count == 0
+        });
     }
     // Calcula la disponibilidad de cada recurso según la fecha y el horario solicitado
     public async Task<Result<IEnumerable<ReservationResponse>>> GetByCareerAsync(Guid actingUserId, RoleCode actingRole, CancellationToken ct)
@@ -317,7 +321,7 @@ public class ReservationService(
         if (reservation is null)
             return Result.Failure<ReservationDetailResponse>(Error.NotFound("Reservation", id.ToString()));
 
-        if (!await CanViewAsync(reservation, actingUserId, actingRole, ct))
+        if (!await accessPolicy.CanViewAsync(reservation, actingUserId, actingRole, ct))
             return Result.Failure<ReservationDetailResponse>(
                 Error.Forbidden("No tienes permiso para ver esta reserva."));
 
@@ -343,32 +347,6 @@ public class ReservationService(
 
         );
     }
-    // NUEVO: quién puede ver el detalle de una reserva.
-    // - Dueño: siempre (cualquier rol ve sus propias reservas).
-    // - Vicerrector, Bienes y Admin: todas, porque autorizan a nivel institucional.
-    // - Coordinator: solo las de su carrera. La carrera se lee de la BD porque el
-    //   JWT no trae careerId (igual que en GetByCareerAsync).
-    // - Student/Teacher: solo las propias (cae en el return false).
-    private async Task<bool> CanViewAsync(Reservation reservation, Guid actingUserId, RoleCode actingRole, CancellationToken ct)
-    {
-        if (reservation.UserId == actingUserId)
-            return true;
-
-        if (actingRole is RoleCode.Admin or RoleCode.Vicerrector or RoleCode.Bienes)
-            return true;
-
-        if (actingRole == RoleCode.Coordinator)
-        {
-            var coordinator = await userRepository.GetByIdAsync(actingUserId, ct);
-            // Si el coordinador no tiene carrera asignada, no puede ver nada ajeno:
-            // sin este chequeo, null == null daría true con dueños sin carrera.
-            return coordinator?.CareerId is not null
-                && reservation.User?.CareerId == coordinator.CareerId;
-        }
-
-        return false;
-    }
-
 
 
     public async Task<Result<ReservationResponse>> SubmitAsync(Guid id, Guid userId, RoleCode actingRole, string justification, CancellationToken ct)
@@ -479,7 +457,41 @@ public class ReservationService(
     }
 
     public Task<Result<ReservationResponse>> CancelAsync(Guid id, Guid userId, string justification, CancellationToken ct)
-        => TransitionAsync(id, userId, justification, r => r.Cancel(), requirementOwnerShip: true, ct);
+    => TransitionAsync(id, userId, justification, r =>
+    {
+        // NUEVO: un borrador que NUNCA se envió (Draft y sin historial) no se cancela
+        if (r.CurrentStatus == ReservationStatus.Draft && r.ReservationHistories.Count == 0)
+            return Result.Failure(Error.Conflict("Reservation",
+                "Un borrador que nunca se envió no se cancela: elimínalo."));
+
+        return r.Cancel();
+    }, requirementOwnerShip: true, ct);
+
+    // NUEVO: elimina un borrador que NUNCA se envió, sin dejar rastro.
+    public async Task<Result> DeleteDraftAsync(Guid id, Guid actingUserId, CancellationToken ct)
+    {
+        // Con detalles, para tener cargado el historial y poder contarlo.
+        var reservation = await reservationRepository.GetByIdWithDetailsAsync(id, ct);
+        if (reservation is null)
+            return Result.Failure(Error.NotFound("Reservation", id.ToString()));
+
+        // Solo el dueño (igual que editar un borrador).
+        if (reservation.UserId != actingUserId)
+            return Result.Failure(Error.Forbidden("Solo el dueño puede eliminar su borrador."));
+
+        if (reservation.CurrentStatus != ReservationStatus.Draft)
+            return Result.Failure(Error.Conflict("Reservation", "Solo se puede eliminar una reserva en borrador."));
+
+        if (reservation.ReservationHistories.Count > 0)
+            return Result.Failure(Error.Conflict("Reservation",
+                "Este borrador ya fue enviado alguna vez y no se puede eliminar. Puedes cancelarlo."));
+
+        // El borrado en cascada se lleva sus recursos (y voucher e historial, que aquí no hay).
+        reservationRepository.Remove(reservation);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return Result.Success();
+    }
 
     private async Task<Result<ReservationResponse>> TransitionAsync(
         Guid reservationId,

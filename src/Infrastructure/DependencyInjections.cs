@@ -73,6 +73,7 @@ public static class DependencyInjection
 
     private static void AddRepositories(this IServiceCollection services)
     {
+        services.AddScoped<ReservationAccessPolicy>(); 
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IFacultyRepository, FacultyRepository>();
         services.AddScoped<ICareerRepository, CareerRepository>();

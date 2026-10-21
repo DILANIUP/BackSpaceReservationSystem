@@ -140,6 +140,24 @@ public class ReservationController(ReservationService reservationService) : Cont
             : BadRequest(new { result.Error.Code, result.Error.Description });
     }
 
+    // NUEVO: elimina un borrador que nunca se envió. Solo el dueño.
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteDraft(Guid id, CancellationToken ct)
+    {
+        var result = await reservationService.DeleteDraftAsync(id, GetUserId(), ct);
+        if (result.IsSuccess)
+            return NoContent();
+        var body = new { result.Error.Code, result.Error.Description };
+
+        if (result.Error.Code == "Forbidden")
+            return StatusCode(403, body);
+
+        if (result.Error.Code.EndsWith(".NotFound"))
+            return NotFound(body);
+
+        return Conflict(body);
+    }
+
     private Guid GetUserId() =>
         Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
 

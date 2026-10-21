@@ -22,7 +22,8 @@ public sealed record ReservationResponse(
     string? RequesterName = null,
     string? RequesterRole = null,
     string? SpaceName = null,
-    string? CareerName = null
+    string? CareerName = null,
+    bool CanDelete = false
 );
 // NUEVO
 public record ResourceAvailabilityResponse(

@@ -23,4 +23,5 @@ public interface IReservationRepository
     void Add(Reservation reservation);
     void Update(Reservation reservation);
     void AddHistory(ReservationHistory history);
+    void Remove(Reservation reservation);
 }

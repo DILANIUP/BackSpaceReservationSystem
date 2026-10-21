@@ -16,15 +16,20 @@ namespace reservationSystem.API.Controllers;
 public class VoucherController(VoucherService voucherService) : ControllerBase
 {
     [HttpGet("{reservationId:guid}")]
-    public async Task <IActionResult> GetByReservationId(Guid reservationId, CancellationToken ct)
+    public async Task<IActionResult> GetByReservationId(Guid reservationId, CancellationToken ct)
     {
         var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
         var userRole = Enum.Parse<RoleCode>(User.FindFirstValue(ClaimTypes.Role)!);
 
         var result = await voucherService.GetPdfForUserAsync(reservationId, userId, userRole, ct);
 
-        return result.IsSuccess
-            ? File(result.Value.Bytes, "application/pdf", result.Value.FileName)
-            : NotFound(new { result.Error.Code, result.Error.Description });
+        if (result.IsSuccess)
+            return File(result.Value.Bytes, "application/pdf", result.Value.FileName);
+
+        // 403 = existe pero no tienes permiso. 404 = no existe (reserva, voucher o archivo).
+        var body = new { result.Error.Code, result.Error.Description };
+        return result.Error.Code == "Forbidden"
+            ? StatusCode(403, body)
+            : NotFound(body);
     }
 }
