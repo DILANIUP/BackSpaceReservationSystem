@@ -1,4 +1,5 @@
 using SpaceReservationSystem.Domain.Entities;
+using SpaceReservationSystem.Domain.Models;
 
 namespace SpaceReservationSystem.Domain.Interfaces;
 
@@ -18,6 +19,8 @@ public interface IReservationRepository
     Task<IEnumerable<Reservation>> GetAllExcludingDraftAsync(CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetForVicerrectorReviewAsync(CancellationToken ct = default);
     Task<IEnumerable<Reservation>> GetForAssetsReviewAsync(CancellationToken ct = default);
+    Task<List<ReservationActivityRow>> GetActivityByUserAsync(Guid userId, int limit, CancellationToken ct = default);
+    Task<List<ReservationMineStats>> GetMineStatsAsync(Guid userId, CancellationToken ct = default);
     void RemoveResource(ReservationResource resource);
     void AddResource(ReservationResource resource);
     void Add(Reservation reservation);

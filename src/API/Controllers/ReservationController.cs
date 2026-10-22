@@ -29,6 +29,13 @@ public class ReservationController(ReservationService reservationService) : Cont
         return Ok(reservations);
     }
 
+    [HttpGet("mine/activity")]
+    public async Task<IActionResult> GetMyActivity([FromQuery] int limit = 5, CancellationToken ct = default)
+    {
+        var activity = await reservationService.GetMyActivityAsync(GetUserId(), limit, ct);
+        return Ok(activity);
+    }
+
     // Consulta la disponibilidad real de los recursos para una fecha y horario
     [HttpGet("resource-availability")]
     public async Task<IActionResult> GetResourceAvailability(

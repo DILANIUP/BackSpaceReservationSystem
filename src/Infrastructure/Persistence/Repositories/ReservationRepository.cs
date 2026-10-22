@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SpaceReservationSystem.Domain.Entities;
 using SpaceReservationSystem.Domain.Enums;
 using SpaceReservationSystem.Domain.Interfaces;
+using SpaceReservationSystem.Domain.Models;
 using SpaceReservationSystem.Infrastructure.Data;
 
 namespace SpaceReservationSystem.Infrastructure.Persistence.Repositories;
@@ -80,17 +81,17 @@ public class ReservationRepository : IReservationRepository
             .OrderBy(r => r.Slot.Date)
             .ToListAsync(ct);
 
-        public async Task<IEnumerable<Reservation>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
-        => await _context.Reservations
-        .Include(r => r.User)
-            .ThenInclude(u => u.Role)
-        .Include(r => r.User)
-            .ThenInclude(u => u.Career)
-        .Include(r => r.Space)
-        .Include(r => r.ReservationHistories)
-        .Where(r => r.UserId == userId)
-        .OrderByDescending(r => r.Slot.Date)
-        .ToListAsync(ct);
+    public async Task<IEnumerable<Reservation>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
+    => await _context.Reservations
+    .Include(r => r.User)
+        .ThenInclude(u => u.Role)
+    .Include(r => r.User)
+        .ThenInclude(u => u.Career)
+    .Include(r => r.Space)
+    .Include(r => r.ReservationHistories)
+    .Where(r => r.UserId == userId)
+    .OrderByDescending(r => r.Slot.Date)
+    .ToListAsync(ct);
 
 
     public async Task<IEnumerable<Reservation>> GetAllExcludingDraftAsync(CancellationToken ct = default)
@@ -133,29 +134,55 @@ public class ReservationRepository : IReservationRepository
                 || r.CurrentStatus == ReservationStatus.Approved)
             .OrderByDescending(r => r.Slot.Date)
             .ToListAsync(ct);
-        public async Task<IEnumerable<Reservation>> GetByCareerAsync(Guid careerId, CancellationToken ct = default)
-        => await _context.Reservations
-            .Include(r => r.User).ThenInclude(u => u.Role)
-            .Include(r => r.User).ThenInclude(u => u.Career)
-            .Include(r => r.Space)
-            .Where(r => r.User.CareerId == careerId
-                // Los Draft no se muestran: un borrador devuelto por el Coordinator vuelve
-                // al estudiante y sale de esta lista.
-                && r.CurrentStatus != ReservationStatus.Draft
-                // Misma regla de arriba: un Cancelled solo si alguna vez se envió.
-                && (r.CurrentStatus != ReservationStatus.Cancelled
-                    || r.ReservationHistories.Any(h =>
-                        h.PreviousStatus == ReservationStatus.Draft
-                        && (h.NewStatus == ReservationStatus.PendingCoordinator
-                            || h.NewStatus == ReservationStatus.PendingVicerrector
-                            || h.NewStatus == ReservationStatus.PendingAssets
-                            || h.NewStatus == ReservationStatus.Approved))))
-            .OrderByDescending(r => r.Slot.Date)
-            .ToListAsync(ct);
+    public async Task<IEnumerable<Reservation>> GetByCareerAsync(Guid careerId, CancellationToken ct = default)
+    => await _context.Reservations
+        .Include(r => r.User).ThenInclude(u => u.Role)
+        .Include(r => r.User).ThenInclude(u => u.Career)
+        .Include(r => r.Space)
+        .Where(r => r.User.CareerId == careerId
+            // Los Draft no se muestran: un borrador devuelto por el Coordinator vuelve
+            // al estudiante y sale de esta lista.
+            && r.CurrentStatus != ReservationStatus.Draft
+            // Misma regla de arriba: un Cancelled solo si alguna vez se envió.
+            && (r.CurrentStatus != ReservationStatus.Cancelled
+                || r.ReservationHistories.Any(h =>
+                    h.PreviousStatus == ReservationStatus.Draft
+                    && (h.NewStatus == ReservationStatus.PendingCoordinator
+                        || h.NewStatus == ReservationStatus.PendingVicerrector
+                        || h.NewStatus == ReservationStatus.PendingAssets
+                        || h.NewStatus == ReservationStatus.Approved))))
+        .OrderByDescending(r => r.Slot.Date)
+        .ToListAsync(ct);
 
 
     public void AddHistory(ReservationHistory history) => _context.ReservationHistories.Add(history);
-        public void Remove(Reservation reservation) => _context.Reservations.Remove(reservation);
+    public void Remove(Reservation reservation) => _context.Reservations.Remove(reservation);
+
+    public async Task<List<ReservationActivityRow>> GetActivityByUserAsync(Guid userId, int limit, CancellationToken ct = default)
+            => await _context.ReservationHistories
+                .Where(h => h.Reservation.UserId == userId)
+                .OrderByDescending(h => h.ChangeDate)
+                .ThenByDescending(h => h.Id)
+                .Take(limit)
+                .Select(h => new ReservationActivityRow(
+                    h.ReservationId,
+                    h.Reservation.Space != null ? h.Reservation.Space.Name : null, // reservas solo de recursos: null
+                    h.NewStatus,
+                    h.ChangedBy.Name,
+                    h.ChangedBy.LastName,
+                    h.ChangedBy.Role.Name,
+                    h.ChangeDate,
+                    h.Justification))
+                .ToListAsync(ct);
+
+    public async Task<List<ReservationMineStats>> GetMineStatsAsync(Guid userId, CancellationToken ct = default)
+    => await _context.Reservations
+    .Where(r => r.UserId == userId)
+    .Select(r => new ReservationMineStats(
+        r.Id,
+        r.ReservationResources.Count(),
+        r.ReservationHistories.Any()))
+    .ToListAsync(ct);
     public void RemoveResource(ReservationResource resource) => _context.ReservationResources.Remove(resource);
 
     public void AddResource(ReservationResource resource) => _context.ReservationResources.Add(resource);

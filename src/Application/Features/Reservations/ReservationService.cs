@@ -251,11 +251,43 @@ public class ReservationService(
     public async Task<IEnumerable<ReservationResponse>> GetMineAsync(Guid userId, CancellationToken ct)
     {
         var reservations = await reservationRepository.GetByUserIdAsync(userId, ct);
-        return reservations.Select(r => ToResponse(r) with
+        var stats = (await reservationRepository.GetMineStatsAsync(userId, ct))
+            .ToDictionary(s => s.ReservationId);
+
+        return reservations.Select(r =>
         {
-            CanDelete = r.CurrentStatus == ReservationStatus.Draft && r.ReservationHistories.Count == 0
+            var known = stats.TryGetValue(r.Id, out var s);
+
+            return ToResponse(r) with
+            {
+                CanDelete = known && r.CurrentStatus == ReservationStatus.Draft && !s!.HasHistory,
+                ResourceCount = known ? s!.ResourceCount : null
+            };
         });
     }
+
+    // NUEVO: actividad reciente de las reservas del usuario (más reciente primero).
+    // limit se ajusta a 1..20 para que nadie pida el historial entero.
+    public async Task<IEnumerable<ReservationActivityResponse>> GetMyActivityAsync(Guid userId, int limit, CancellationToken ct)
+    {
+        var rows = await reservationRepository.GetActivityByUserAsync(userId, Math.Clamp(limit, 1, 20), ct);
+
+        return rows.Select(r => new ReservationActivityResponse(
+            r.ReservationId,
+            r.SpaceName,
+            r.NewStatus.ToString(),
+            FormatFullName(r.ChangedByName, r.ChangedByLastName),
+            r.ChangedByRole,
+            r.ChangeDate,
+            r.Justification));
+    }
+
+    // NUEVO: un solo formato de "Nombre Apellido" para toda la clase. Tolera apellido
+    // vacío o nulo (queda solo el nombre, sin espacios de sobra).
+    private static string FormatFullName(string? name, string? lastName)
+        => string.Join(' ', new[] { name, lastName }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!.Trim()));
     // Calcula la disponibilidad de cada recurso según la fecha y el horario solicitado
     public async Task<Result<IEnumerable<ReservationResponse>>> GetByCareerAsync(Guid actingUserId, RoleCode actingRole, CancellationToken ct)
     {
@@ -339,7 +371,8 @@ public class ReservationService(
                 .OrderBy(h => h.ChangeDate)
                 .Select(h => new ReservationHistoryEntryResponse(
                     h.NewStatus.ToString(), h.Justification, h.ChangeDate,
-                    h.ChangedBy?.Name ?? "—", h.ChangedBy?.Role?.Name))
+                    h.ChangedBy is null ? "—" : FormatFullName(h.ChangedBy.Name, h.ChangedBy.LastName),
+                    h.ChangedBy?.Role?.Name))
                 .ToList(),
 
             reservation.Voucher?.GenerationDate

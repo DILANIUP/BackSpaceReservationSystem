@@ -23,7 +23,8 @@ public sealed record ReservationResponse(
     string? RequesterRole = null,
     string? SpaceName = null,
     string? CareerName = null,
-    bool CanDelete = false
+    bool CanDelete = false,
+    int? ResourceCount = null
 );
 // NUEVO
 public record ResourceAvailabilityResponse(
@@ -34,7 +35,7 @@ public record ResourceAvailabilityResponse(
     int Available
 );
 
-public sealed record ReservationDetailResponse (
+public sealed record ReservationDetailResponse(
     Guid Id,
     DateTime Date,
     TimeSpan StartTime,
@@ -63,6 +64,17 @@ public sealed record ReservationHistoryEntryResponse(
     DateTime ChangeDate,
     string ChangedByName,
     string? ChangedByRole
+);
+
+// NUEVO: un movimiento para el dashboard de Student/Teacher.
+public sealed record ReservationActivityResponse(
+    Guid ReservationId,
+    string? SpaceName,
+    string NewStatus,
+    string ChangedByName,
+    string? ChangedByRole,
+    DateTime ChangeDate,
+    string? Justification
 );
 
 public sealed record TransitionRequest(
