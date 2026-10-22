@@ -1,108 +1,104 @@
+
 using SpaceReservationSystem.Domain.Primitives;
 
 namespace SpaceReservationSystem.Domain.Errors;
 
 public static class RoleErrors
 {
-    public static readonly Error InvalidName = new("Role.InvalidName", "the name of the role is invalid");
-    public static readonly Error NotFound = new("Role.NotFound", "the role was not found");
+    public static readonly Error InvalidName = new("Role.InvalidName", "El nombre del rol no es válido.");
+    public static readonly Error NotFound = new("Role.NotFound", "No se encontró el rol.");
 }
 
 public static class FacultyErrors
 {
-    public static readonly Error InvalidName = new("Faculty.InvalidName", "the name of the faculty is invalid");
+    public static readonly Error InvalidName = new("Faculty.InvalidName", "El nombre de la facultad no es válido.");
 }
 
 public static class CareerErrors
 {
-    public static readonly Error InvalidName = new("Career.InvalidName", "The name of the career is invalid.");
-    public static readonly Error InvalidFaculty = new("Career.InvalidFaculty", "A valid faculty id is required.");
+    public static readonly Error InvalidName = new("Career.InvalidName", "El nombre de la carrera no es válido.");
+    public static readonly Error InvalidFaculty = new("Career.InvalidFaculty", "Se requiere un identificador de facultad válido.");
 }
 
 public static class UserErrors
 {
     public static readonly Error InvalidName = new("User.InvalidName", "El nombre no es válido.");
-    public static readonly Error InvalidEmail = new("User.InvalidEmail", "El correo no es válido.");
+    public static readonly Error InvalidEmail = new("User.InvalidEmail", "El correo electrónico no es válido.");
     public static readonly Error InvalidPhone = new("User.InvalidPhone", "El teléfono no es válido.");
     public static readonly Error InvalidRole = new("User.InvalidRole", "El rol no es válido.");
     public static readonly Error InvalidCareer = new("User.InvalidCareer", "Debes seleccionar una carrera.");
     public static readonly Error InvalidPassword = new("User.InvalidPassword", "La contraseña no es válida.");
-    public static readonly Error NotFound = new("Role.NotFound", "No se encontró el rol.");
-    public static readonly Error EmailAlreadyExists = new("User.EmailAlreadyExists", "Este correo ya está registrado.");
+    public static readonly Error NotFound = new("Role.NotFound", "No se encontró el usuario.");
+    public static readonly Error EmailAlreadyExists = new("User.EmailAlreadyExists", "Este correo electrónico ya está registrado.");
 }
 
 public static class SpaceErrors
 {
-    public static readonly Error InvalidName = new("Space.InvalidName", "The name of the space is invalid.");
-    public static readonly Error InvalidLocation = new("Space.InvalidLocation", "The location of the space is invalid.");
-    public static readonly Error InvalidCapacity = new("Space.InvalidCapacity", "The capacity must be greater than 0 and less than or equal to 30.");
-    public static readonly Error AlreadyActive = new("Space.AlreadyActive", "The space is already active.");
-
-    public static readonly Error AlreadyInactive = new("Space.AlreadyInactive", "The space is already inactive.");
+    public static readonly Error InvalidName = new("Space.InvalidName", "El nombre del espacio no es válido.");
+    public static readonly Error InvalidLocation = new("Space.InvalidLocation", "La ubicación del espacio no es válida.");
+    public static readonly Error InvalidCapacity = new("Space.InvalidCapacity", "La capacidad debe ser mayor que 0 y no superar las 30 personas.");
+    public static readonly Error AlreadyActive = new("Space.AlreadyActive", "El espacio ya está activo.");
+    public static readonly Error AlreadyInactive = new("Space.AlreadyInactive", "El espacio ya está inactivo.");
 }
 
 public static class ResourceErrors
 {
-    public static readonly Error InvalidName = new("Resource.InvalidName", "The name of the resource is invalid.");
-    public static readonly Error InvalidQuantity = new("Resource.InvalidQuantity", "The available quantity cannot be negative.");
-    public static readonly Error AlreadyActive = new("Resource.AlreadyActive", "The resource is already active.");
-    public static readonly Error AlreadyInactive = new("Resource.AlreadyInactive", "The resource is already inactive.");
+    public static readonly Error InvalidName = new("Resource.InvalidName", "El nombre del recurso no es válido.");
+    public static readonly Error InvalidQuantity = new("Resource.InvalidQuantity", "La cantidad disponible no puede ser negativa.");
+    public static readonly Error AlreadyActive = new("Resource.AlreadyActive", "El recurso ya está activo.");
+    public static readonly Error AlreadyInactive = new("Resource.AlreadyInactive", "El recurso ya está inactivo.");
 }
 
 public static class ReservationErrors
 {
-    public static readonly Error InvalidDate = new("Reservation.InvalidDate", "The reservation date cannot be in the past.");
-    public static readonly Error InvalidTimeRange = new("Reservation.InvalidTimeRange", "The end time must be greater than the start time.");
-    public static readonly Error OutsideAllowedHours = new("Reservation.OutsideAllowedHours", "Reservations are only allowed between 7:00 AM and 11:00 PM.");
-    public static readonly Error InvalidReason = new("Reservation.InvalidReason", "The reason is required.");
-    public static readonly Error InvalidUser = new("Reservation.InvalidUser", "The user is invalid.");
-    public static readonly Error InsufficientNotice = new("Reservation.InsufficientNotice", "Reservations must be made at least 72 hours in advance.");
-    public static readonly Error InvalidStatusTransition = new("Reservation.InvalidStatusTransition", "The reservation cannot transition to this status from its current state.");
-    public static readonly Error SlotAlreadyTaken = new("Reservation.SlotAlreadyTaken", "The space is already reserved for that time slot.");
-
+    public static readonly Error InvalidDate = new("Reservation.InvalidDate", "La fecha de la reserva no puede ser anterior a la fecha actual.");
+    public static readonly Error InvalidTimeRange = new("Reservation.InvalidTimeRange", "La hora de finalización debe ser posterior a la hora de inicio.");
+    public static readonly Error OutsideAllowedHours = new("Reservation.OutsideAllowedHours", "Las reservas solo están permitidas entre las 7:00 y las 23:00.");
+    public static readonly Error InvalidReason = new("Reservation.InvalidReason", "El motivo de la reserva es obligatorio.");
+    public static readonly Error InvalidUser = new("Reservation.InvalidUser", "El usuario no es válido.");
+    public static readonly Error InsufficientNotice = new("Reservation.InsufficientNotice", "Las reservas deben realizarse con al menos 72 horas de anticipación.");
+    public static readonly Error InvalidStatusTransition = new("Reservation.InvalidStatusTransition", "La reserva no puede cambiar al estado solicitado desde su estado actual.");
+    public static readonly Error SlotAlreadyTaken = new("Reservation.SlotAlreadyTaken", "El espacio ya está reservado para ese horario.");
 }
 
 public static class ReservationResourceErrors
 {
-    public static readonly Error InvalidQuantity = new("ReservationResource.InvalidQuantity", "The requested quantity must be greater than 0.");
-    public static readonly Error InvalidReservation = new("ReservationResource.InvalidReservation", "The reservation is invalid.");
-    public static readonly Error InvalidResource = new("ReservationResource.InvalidResource", "The resource is invalid.");
+    public static readonly Error InvalidQuantity = new("ReservationResource.InvalidQuantity", "La cantidad solicitada debe ser mayor que 0.");
+    public static readonly Error InvalidReservation = new("ReservationResource.InvalidReservation", "La reserva no es válida.");
+    public static readonly Error InvalidResource = new("ReservationResource.InvalidResource", "El recurso no es válido.");
 }
 
 public static class ReservationHistoryErrors
 {
-    public static readonly Error InvalidJustification = new("ReservationHistory.InvalidJustification", "The justification is required.");
-
-    public static readonly Error InvalidReservation = new("ReservationHistory.InvalidReservation", "The reservation is invalid.");
-
-    public static readonly Error InvalidChangedBy = new("ReservationHistory.InvalidChangedBy", "The user who made the change is invalid.");
+    public static readonly Error InvalidJustification = new("ReservationHistory.InvalidJustification", "La justificación es obligatoria.");
+    public static readonly Error InvalidReservation = new("ReservationHistory.InvalidReservation", "La reserva no es válida.");
+    public static readonly Error InvalidChangedBy = new("ReservationHistory.InvalidChangedBy", "El usuario que realizó el cambio no es válido.");
 }
 
 public static class AlertErrors
 {
-    public static readonly Error InvalidDescription = new("Alert.InvalidDescription", "The description is required.");
-    public static readonly Error MissingTarget = new("Alert.MissingTarget", "An alert must be linked to either a resource or a space.");
-    public static readonly Error AlreadyResolved = new("Alert.AlreadyResolved", "The alert is already resolved.");
-    public static readonly Error InvalidObservation = new("Alert.InvalidObservation", "The resolution observation is required.");
+    public static readonly Error InvalidDescription = new("Alert.InvalidDescription", "La descripción es obligatoria.");
+    public static readonly Error MissingTarget = new("Alert.MissingTarget", "La alerta debe estar asociada a un recurso o a un espacio.");
+    public static readonly Error AlreadyResolved = new("Alert.AlreadyResolved", "La alerta ya está resuelta.");
+    public static readonly Error InvalidObservation = new("Alert.InvalidObservation", "La observación de resolución es obligatoria.");
 }
 
 public static class EmailTemplateErrors
 {
-    public static readonly Error InvalidCode = new("EmailTemplate.InvalidCode", "The template code is required.");
-    public static readonly Error InvalidSubject = new("EmailTemplate.InvalidSubject", "The subject is required.");
-    public static readonly Error InvalidBody = new("EmailTemplate.InvalidBody", "The body is required.");
+    public static readonly Error InvalidCode = new("EmailTemplate.InvalidCode", "El código de la plantilla es obligatorio.");
+    public static readonly Error InvalidSubject = new("EmailTemplate.InvalidSubject", "El asunto es obligatorio.");
+    public static readonly Error InvalidBody = new("EmailTemplate.InvalidBody", "El contenido de la plantilla es obligatorio.");
 }
 
 public static class EmailLogErrors
 {
-    public static readonly Error InvalidEmail = new("EmailLog.InvalidEmail", "The recipient email is required.");
-    public static readonly Error InvalidTemplate = new("EmailLog.InvalidTemplate", "A valid template id is required.");
-    public static readonly Error InvalidErrorMessage = new("EmailLog.InvalidErrorMessage", "An error message is required when marking as failed.");
+    public static readonly Error InvalidEmail = new("EmailLog.InvalidEmail", "El correo electrónico del destinatario es obligatorio.");
+    public static readonly Error InvalidTemplate = new("EmailLog.InvalidTemplate", "Se requiere un identificador de plantilla válido.");
+    public static readonly Error InvalidErrorMessage = new("EmailLog.InvalidErrorMessage", "El mensaje de error es obligatorio cuando se marca un envío como fallido.");
 }
 
 public static class VoucherErrors
 {
-    public static readonly Error InvalidPath = new("Voucher.InvalidPath", "The PDF file path is required.");
-    public static readonly Error InvalidReservation = new("Voucher.InvalidReservation", "A valid reservation id is required.");
+    public static readonly Error InvalidPath = new("Voucher.InvalidPath", "La ruta del archivo PDF es obligatoria.");
+    public static readonly Error InvalidReservation = new("Voucher.InvalidReservation", "Se requiere un identificador de reserva válido.");
 }
-
