@@ -25,7 +25,7 @@ public class UserController(UserService userService, AuthService authService) : 
     }
 
     [HttpGet]
-    [Authorize(Roles = "Coordinator,Vicerrector,Bienes,Admin")]
+    [Authorize(Roles = "Coordinator,Bienes,Admin")]
     public async Task<IActionResult> Search([FromQuery] RoleCode? role, [FromQuery] Guid? careerId, CancellationToken ct)
     {
         var users = await userService.SearchAsync(role, careerId, ct);

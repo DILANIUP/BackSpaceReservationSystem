@@ -7,7 +7,6 @@ using SpaceReservationSystem.Domain.Errors;
 using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Domain.Primitives;
 using SpaceReservationSystem.Domain.ValueObjects;
-using System.Text.RegularExpressions;
 
 namespace SpaceReservationSystem.Application.Features.Reservations;
 
@@ -34,6 +33,7 @@ public class ReservationService(
         // NUEVO: si viene OnBehalfOfUserId, la reserva es PARA otro usuario, no
         // para quien está logueado. targetUserId es el que queda como dueño real
         // (así le sigue apareciendo en "Mis reservas" a él/ella, no a quien la creó).
+        // Bienes y Admin: sin restricción de a quién.
         var targetUserId = actingUserId;
 
         if (request.OnBehalfOfUserId is not null)
@@ -41,6 +41,11 @@ public class ReservationService(
             if (actingRole is RoleCode.Student or RoleCode.Teacher)
                 return Result.Failure<ReservationResponse>(
                     Error.Validation("OnBehalfOfUserId", "No tienes permiso para crear reservas a nombre de otro usuario."));
+
+            if (actingRole == RoleCode.Vicerrector)
+                return Result.Failure<ReservationResponse>(
+                    Error.Validation("OnBehalfOfUserId",
+                        "Como Vicerrector solo puedes crear reservas para ti. Para reservar a nombre de otra persona, solicita ayuda a Bienes o a un Administrador."));
 
             var targetUser = await userRepository.GetByIdAsync(request.OnBehalfOfUserId.Value, ct);
             if (targetUser is null)
@@ -58,7 +63,7 @@ public class ReservationService(
                     return Result.Failure<ReservationResponse>(
                         Error.Validation("OnBehalfOfUserId", "Solo puedes crear reservas para usuarios de tu misma carrera."));
             }
-            // Vicerrector, Bienes y Admin: sin restricción de a quién.
+
 
             targetUserId = targetUser.Id;
         }
