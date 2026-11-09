@@ -8,6 +8,9 @@ using SpaceReservationSystem.Domain.Interfaces;
 using SpaceReservationSystem.Domain.Primitives;
 using SpaceReservationSystem.Domain.ValueObjects;
 
+using SpaceReservationSystem.API.Abstractions.Email;
+using SpaceReservationSystem.Application.Features.Email;
+
 namespace SpaceReservationSystem.Application.Features.Reservations;
 
 public class ReservationService(
@@ -18,7 +21,8 @@ public class ReservationService(
     IUnitOfWork unitOfWork,
     IValidator<CreateReservationRequest> validator,
     VoucherService voucherService,
-    ReservationAccessPolicy accessPolicy
+    ReservationAccessPolicy accessPolicy,
+    EmailService emailService
 )
 {
     public async Task<Result<ReservationResponse>> CreateAsync(CreateReservationRequest request, Guid actingUserId, RoleCode actingRole, CancellationToken ct)
@@ -431,6 +435,8 @@ public class ReservationService(
         if (reservation is null)
             return Result.Failure<ReservationResponse>(Error.NotFound("Reservation", id.ToString()));
 
+        string? assignedSpaceName = reservation.Space?.Name;
+
         if (newSpaceId is not null)
         {
             var space = await spaceRepository.GetByIdAsync(newSpaceId.Value, ct);
@@ -439,6 +445,8 @@ public class ReservationService(
 
             if (!space.IsActive)
                 return Result.Failure<ReservationResponse>(Error.Conflict("Space", "El espacio está inactivo y no puede asignarse."));
+            //Guarda espacio asignado - correo
+            assignedSpaceName = space.Name;
 
             var existing = await reservationRepository.GetActiveBySpaceAndDateAsync(newSpaceId.Value, reservation.Slot.Date, ct);
 
@@ -463,6 +471,40 @@ public class ReservationService(
         if (voucherResult.IsFailure)
             return Result.Failure<ReservationResponse>(voucherResult.Error);
 
+        var pdfBytes = await File.ReadAllBytesAsync(
+            voucherResult.Value.PdfFilePath, ct);
+
+        //código de la reserva
+        var code = $"RSV-{reservation.Id.ToString("N")[..8].ToUpperInvariant()}";
+
+        // Preparar el archivo
+        var attachment = new EmailAttachment(
+            $"comprobante-{code}.pdf",
+            pdfBytes,
+            "application/pdf"
+        );
+
+        // Reemplazar los marcadores de la plantilla HTML
+        var replacements = new Dictionary<string, string>
+        {
+            ["solicitante"] = $"{reservation.User.Name} {reservation.User.LastName}".Trim(),
+            ["codigo"] = code,
+            ["espacio"] = assignedSpaceName ?? "Sin espacio asignado",
+            ["fecha"] = reservation.Slot.Date.ToString("dd/MM/yyyy"),
+            ["horario"] = $"{reservation.Slot.StartTime:hh\\:mm} - {reservation.Slot.EndTime:hh\\:mm}",
+            ["motivo"] = reservation.Reason
+        };
+
+        // Enviar el correo al solicitante
+        await emailService.SendByTemplateAsync(
+            templateCode: "ReservationApproved",
+            toEmail: reservation.User.Email.Value,
+            reservationId: reservation.Id,
+            ct: ct,
+            replacements: replacements,
+            attachments: new[] { attachment }
+        );
+
         return new ReservationResponse(
             reservation.Id, reservation.Slot.Date, reservation.Slot.StartTime, reservation.Slot.EndTime,
             reservation.Reason, reservation.CurrentStatus.ToString(), reservation.UserId, reservation.SpaceId
@@ -480,8 +522,10 @@ public class ReservationService(
         Guid id, Guid userId, RoleCode actingRole, string justification, CancellationToken ct)
     {
         var reservation = await reservationRepository.GetByIdWithDetailsAsync(id, ct);
+
         if (reservation is null)
-            return Result.Failure<ReservationResponse>(Error.NotFound("Reservation", id.ToString()));
+            return Result.Failure<ReservationResponse>(
+                Error.NotFound("Reservation", id.ToString()));
 
         if (actingRole != RoleCode.Admin
             && RejectionAuthority.TryGetValue(actingRole, out var expectedStatus)
@@ -491,9 +535,43 @@ public class ReservationService(
                 Error.Conflict("Reservation", "No puedes rechazar una reserva que no está en tu etapa actual."));
         }
 
-        return await TransitionAsync(id, userId, justification, r => r.Reject(actingRole), requirementOwnerShip: false, ct);
-    }
+        var result = await TransitionAsync(
+            id,
+            userId,
+            justification,
+            r => r.Reject(actingRole),
+            requirementOwnerShip: false,
+            ct
+        );
 
+        // Si el rechazo falla, no se envía ningún correo
+        if (result.IsFailure)
+            return result;
+
+        // Código de la reserva
+        var code = $"RSV-{reservation.Id.ToString("N")[..8].ToUpperInvariant()}";
+
+        // Datos que reemplazarán los marcadores de la plantilla
+        var replacements = new Dictionary<string, string>
+        {
+            ["solicitante"] = $"{reservation.User.Name} {reservation.User.LastName}".Trim(),
+            ["codigo"] = code,
+            ["fecha"] = reservation.Slot.Date.ToString("dd/MM/yyyy"),
+            ["horario"] = $"{reservation.Slot.StartTime:hh\\:mm} - {reservation.Slot.EndTime:hh\\:mm}",
+            ["motivoRechazo"] = justification
+        };
+
+        // Enviar correo de rechazo al solicitante
+        await emailService.SendByTemplateAsync(
+            templateCode: "ReservationRejected",
+            toEmail: reservation.User.Email.Value,
+            reservationId: reservation.Id,
+            ct: ct,
+            replacements: replacements
+        );
+
+        return result;
+    }
     public Task<Result<ReservationResponse>> CancelAsync(Guid id, Guid userId, string justification, CancellationToken ct)
     => TransitionAsync(id, userId, justification, r =>
     {

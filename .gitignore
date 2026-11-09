@@ -31,3 +31,6 @@ Thumbs.db
 **/Migrations/*
 
 global.json
+Storage/Vouchers/*.pdf
+
+Storage/Vouchers/*.pdf

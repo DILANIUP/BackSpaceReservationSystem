@@ -1,3 +1,5 @@
+
+using System.Net;
 using EmailLogEntity = SpaceReservationSystem.Domain.Entities.EmailLog;
 using SpaceReservationSystem.API.Abstractions.Email;
 using SpaceReservationSystem.Domain.Interfaces;
@@ -5,12 +7,11 @@ using SpaceReservationSystem.Domain.Primitives;
 
 namespace SpaceReservationSystem.Application.Features.Email;
 
-// Orquestador: busca la plantilla, envía el correo real vía SMTP, y deja registro en EmailLog.
 public class EmailService
 {
     private readonly IEmailTemplateRepository _templateRepository;
     private readonly IEmailLogRepository _logRepository;
-    private readonly IEmailService _emailSender; // implementación real (SMTP)
+    private readonly IEmailService _emailSender;
     private readonly IUnitOfWork _unitOfWork;
 
     public EmailService(
@@ -30,15 +31,21 @@ public class EmailService
         string toEmail,
         Guid? reservationId = null,
         Guid? alertId = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IReadOnlyDictionary<string, string>? replacements = null,
+        IReadOnlyCollection<EmailAttachment>? attachments = null)
     {
-        var template = await _templateRepository.GetByCodeAsync(templateCode, ct);
+        var template = await _templateRepository.GetByCodeAsync(
+            templateCode, ct);
 
         if (template is null)
+        {
             return Result.Failure<EmailLogEntity>(
                 Error.NotFound("EmailTemplate", templateCode));
+        }
 
-        var logResult = EmailLogEntity.Create(toEmail, template.Id, reservationId, alertId);
+        var logResult = EmailLogEntity.Create(
+            toEmail, template.Id, reservationId, alertId);
 
         if (logResult.IsFailure)
             return Result.Failure<EmailLogEntity>(logResult.Error);
@@ -47,7 +54,25 @@ public class EmailService
 
         try
         {
-            await _emailSender.SendEmailAsync(toEmail, template.Subject, template.Body, ct);
+            // Reemplazar variables en el asunto y el contenido HTML.
+            var subject = ReplaceMarkers(
+                template.Subject,
+                replacements,
+                encodeHtml: false);
+
+            var body = ReplaceMarkers(
+                template.Body,
+                replacements,
+                encodeHtml: true);
+
+            // Enviar correo con los archivos adjuntos
+            await _emailSender.SendEmailAsync(
+                toEmail,
+                subject,
+                body,
+                attachments ?? Array.Empty<EmailAttachment>(),
+                ct);
+
             log.MarkAsSent();
         }
         catch (Exception ex)
@@ -56,8 +81,32 @@ public class EmailService
         }
 
         _logRepository.Add(log);
+
         await _unitOfWork.SaveChangesAsync(ct);
 
         return log;
+    }
+
+    private static string ReplaceMarkers(
+        string content,
+        IReadOnlyDictionary<string, string>? replacements,
+        bool encodeHtml)
+    {
+        if (replacements is null || replacements.Count == 0)
+            return content;
+
+        foreach (var replacement in replacements)
+        {
+            var value = encodeHtml
+                ? WebUtility.HtmlEncode(replacement.Value)
+                : replacement.Value;
+
+            content = content.Replace(
+                "@" + replacement.Key,
+                value,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        return content;
     }
 }
