@@ -8,6 +8,7 @@ using SpaceReservationSystem.Application.Features.Career;
 using SpaceReservationSystem.Application.Features.EmailTemplate;
 using SpaceReservationSystem.Application.Features.Faculty;
 using SpaceReservationSystem.Application.Features.Notification;
+using SpaceReservationSystem.Application.Features.Reports;
 using SpaceReservationSystem.Application.Features.Reservations;
 using SpaceReservationSystem.Application.Features.Resource;
 using SpaceReservationSystem.Application.Features.Space;
@@ -97,6 +98,9 @@ public static class DependencyInjection
         services.AddScoped<EmailTemplateService>();
         services.AddScoped<Application.Features.Email.EmailService>();
         services.AddScoped<UserService>();
+        services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<ReportService>();
+         services.AddSingleton<IReportExcelExporter, Reports.ClosedXmlReportExporter>();
     }
 
 
